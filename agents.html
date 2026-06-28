@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Объекты обучения — Учебный центр</title>
+  <style>
+    header.docs-topbar h1 { color: #fff !important; }
+    .docs-page h2 { color: #fff !important; }
+    body { background: var(--bg); }
+    .docs-kicker { color: #e8a830 !important; }
+    .docs-intro {
+      border: 1px solid rgba(91,163,232,0.35) !important;
+      background: linear-gradient(rgba(91,163,232,0.06), rgba(91,163,232,0.06)), #0e0e10;
+      transition: box-shadow 0.25s ease;
+    }
+    .docs-intro:hover {
+      box-shadow: 0 0 14px rgba(91,163,232,0.3);
+    }
+    .docs-section {
+      border: 1px solid rgba(91,163,232,0.2);
+      border-radius: 6px;
+      padding: 22px 14px 14px;
+      background: rgba(91,163,232,0.04);
+      transition: box-shadow 0.25s ease;
+    }
+    .docs-section:hover {
+      box-shadow: 0 0 14px rgba(91,163,232,0.2);
+    }
+    .agent-card {
+      border: 1px solid rgba(91,163,232,0.35) !important;
+      background: rgba(91,163,232,0.06);
+      transition: box-shadow 0.25s ease !important;
+    }
+    .agent-card:hover {
+      box-shadow: 0 0 14px rgba(91,163,232,0.3) !important;
+    }
+    /* Минимальные стили специально для карточек агентов */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .agent-card {
+      background: var(--bg-card, #1a1a1a);
+      border: 1px solid var(--border, #333);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .agent-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .agent-img {
+      height: 180px;
+      background-color: #222;
+      background-image: linear-gradient(45deg, #2a2a2a 25%, transparent 25%), linear-gradient(-45deg, #2a2a2a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2a2a2a 75%), linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 14px;
+      font-family: monospace;
+    }
+    .agent-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* ИСПРАВЛЕНО: было cover, теперь картинка не обрежется */
+    }
+    .agent-content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+    .agent-class-tag {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-accent, #8a9bff);
+      margin-bottom: 8px;
+    }
+    .agent-desc {
+      font-size: 14px;
+      line-height: 1.4;
+      color: #aaa;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+    .agent-ttx {
+      border-top: 1px solid #333;
+      padding-top: 16px;
+      margin-bottom: 20px;
+    }
+    .agent-ttx b { color: #5ba3e8 !important; }
+    .agent-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: #e8a830;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.2s, box-shadow 0.25s ease;
+    }
+    .agent-btn:hover {
+      background: #d09020;
+      box-shadow: 0 0 10px rgba(232,168,48,0.3);
+    }
+    .tick-flow span {
+      color: #e8a830;
+    }
+    .tick-flow { grid-template-columns: repeat(4, 1fr); }
+    .tick-flow div {
+      color: #e8a830;
+      border-left: 2px solid rgba(91,163,232,0.35) !important;
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body class="docs-body">
+<nav class="top-nav">
+  <a class="home" href="index.html">Главная</a>
+  <a class="active" href="agents.html">Агенты</a>
+  <a href="agent-packages.html">ПИД АГЕНТ</a>
+  <a href="curriculum.html">Программа</a>
+  <a href="agent-training.html">2D Тренинг</a>
+  <a href="agent-training-3d.html">3D Тренинг</a>
+  <a href="Poligon.html">Полигон</a>
+  <a href="simulator.html">Демонстратор</a>
+  <a href="UTC.html">УТЦ</a>
+  <a href="diagram-pipeline.html">Пайплайн</a>
+  <a href="training.html">Обучение</a>
+  <a href="results.html">Модели</a>
+  <a href="paperplane.html">PaperPlane</a>
+  <a href="trials.html">Испытания</a>
+  <a href="licenses.html">Лицензия</a>
+</nav>
+  <header class="docs-topbar">
+
+    <h1>Каталог цифровых агентов</h1>
+
+  </header>
+
+  <main class="docs-page">
+    <section class="docs-intro">
+      <div>
+        <div class="docs-kicker">Реестр Учебного центра</div>
+        <h2>Цифровые двойники агентов</h2>
+        <p>
+          Каталог всех типов и классов аппаратов, допущенных к обучению. Каждый агент 
+          имеет строго нормализованные физические параметры (ТТХ), которые напрямую 
+          интегрируются в процедурный тренажер и полигон для формирования корректного 
+          пространства состояний (State Space) нейросети.
+        </p>
+      </div>
+      <div class="tick-flow">
+        <div><span>01</span>Авиационные</div>
+        <div><span>02</span>Наземные</div>
+        <div><span>03</span>Морские</div>
+        <div><span>04</span>Транспортные</div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- РАЗДЕЛ 1: АВИАЦИОННЫЕ АГЕНТЫ                -->
+    <!-- ========================================== -->
+    <section id="aviation" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker">Класс 01</div>
+        <h2>Авиационные агенты</h2>
+      </div>
+
+      <div class="agents-grid">
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type2.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Ударный БПЛА-Ученик (Тип I)</h3>
+            <div class="agent-class-tag">Авиация > Самолет (Fixed-Wing)</div>
+            <p class="agent-desc">
+             Ударный БПЛА для отработки тактики дальнего поражения стационарных обектов. 
+              Оптимизирован для полета и работы в условиях городской застройки. 
+			  Обучение позиционному удержанию маршрута полета и обходу препятствий.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Масса 
+			  акуммулятор</span><b>135 кг</b></div>
+              <div><span>Макс. скорость</span><b>185 м/с</b></div>
+              <div><span>Угл. ск. разворота</span><b>20–25°/с</b></div>
+              <div><span>Макс. Дальность</span><b>2500</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">Тренажер</a>
+          </div>
+        </article>
+		
+      <!--  класс агента 2 АВИАЦИОННЫЕ-->
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type1.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Ударный Мультикоптер (Тип II)</h3>
+            <div class="agent-class-tag">Авиация > Мультикоптер</div>
+            <p class="agent-desc">
+              Платформа горизонтального взлета для отработки дальних перелетов и точечных ударов в динамике полета 
+              в условиях городской застройки. Обучение позиционному удержанию маршрута полета и обходу препятствий.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Масса</span><b>15 кг</b></div>
+              <div><span>Макс. скорость</span><b>25 м/с</b></div>
+              <div><span>Макс. верт. скорость</span><b>8 м/с</b></div>
+              <div><span>Макс. угол наклона</span><b>45°</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">Тренажер</a>
+          </div>
+        </article>
+		
+      <!--  класс агента 3 АВИАЦИОННЫЕ-->	
+		        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type3.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3> Перехватчик Мультикоптер (Тип III)</h3>
+            <div class="agent-class-tag">Авиация > Мультикоптер</div>
+            <p class="agent-desc">
+              Платформа вертикального взлета для отработки Перехвата БПЛА и динамики полета мультикоптера 
+              в условиях городской застройки. Обучение тактики перехвата до рубежа аттаки БПЛА противника.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Макс. батареи</span><b>2.5 кг</b></div>
+              <div><span>Макс. скорость</span><b>45 м/с</b></div>
+              <div><span>Макс. верт. скорость</span><b>15 м/с</b></div>
+              <div><span>Макс. угол наклона</span><b>75°</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">Тренажер</a>
+          </div>
+        </article>
+      </div>
+    </section>
+	
+
+    <!-- РАЗДЕЛ 2: НАЗЕМНЫЕ АГЕНТЫ                 -->
+    <!-- ========================================== -->
+    <section id="ground" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker">Класс 02</div>
+        <h2>Наземные агенты</h2>
+      </div>
+      
+      <div class="agents-grid">
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type10.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Транспортный Тягач (Тип I)</h3>
+            <div class="agent-class-tag">Сухопутные > Транспорт (Колесные)</div>
+            <p class="agent-desc">
+              Автономный фура-тягач для магистральных маршрутов. Обучается удержанию полосы, 
+              безопасной дистанции, сложным маневрам на складах и экстренному торможению с грузом.
+            </p>
+            <div class="metrics agent-ttx">
+              <div><span>Масса (брутто)</span><b>44 000 кг</b></div>
+              <div><span>Макс. скорость</span><b>90 км/ч</b></div>
+              <div><span>Тормозной путь (60 км/ч)</span><b>50 м</b></div>
+              <div><span>Мин. радиус разворота</span><b>12 м</b></div>
+            </div>
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type12.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Спецтехника (Тип II)</h3>
+            <div class="agent-class-tag">Сухопутные > Гусеничные (Рабочие)</div>
+            <p class="agent-desc">
+              Тяжелая гусеничная спецтехника для земляных и дорожных работ. Изучается точное 
+              позиционирование рабочего органа, преодоление сопротивления грунта и работа по шаблону.
+            </p>
+            <div class="metrics agent-ttx">
+              <div><span>Масса (брутто)</span><b>25 000 кг</b></div>
+              <div><span>Макс. скорость</span><b>12 км/ч</b></div>
+              <div><span>Радиус разворота</span><b>На месте</b></div>
+              <div><span>Давление на грунт</span><b>0.7 кг/см²</b></div>
+            </div>
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type13.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Тяжелая Платформа (Тип III)</h3>
+            <div class="agent-class-tag">Сухопутные > Гусеничные (Тяжелые)</div>
+            <p class="agent-desc">
+              Тяжелая транспортная гусеничная платформа для бездорожья. Агент учится прокладывать 
+              оптимальный маршрут по пересеченной местности с учетом проскальзывания и уклонов.
+            </p>
+            <div class="metrics agent-ttx">
+              <div><span>Масса (брутто)</span><b>5 000 кг</b></div>
+              <div><span>Грузопо дъемность</span><b>15 000 кг</b></div>
+              <div><span>Макс. скорость</span><b>35 км/ч</b></div>
+              <div><span>Макс. угол подъема</span><b>30°</b></div>
+
+            </div>
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+      </div>
+    </section>
+	
+		    <!-- ========================================== -->
+    <!-- РАЗДЕЛ 3: МОРСКИЕ АГЕНТЫ             -->
+    <!-- ========================================== -->
+	<section id="maritime" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker">Класс 03</div>
+        <h2>Морские агенты</h2>
+      </div>
+      <!--  класс агента 1 морские-->
+      <div class="agents-grid">
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type8.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Катер-Перехватчик-Ученик (Тип I)</h3>
+            <div class="agent-class-tag">Море > Катер </div>
+            <p class="agent-desc">
+              Быстроходный катер для отработки морского перехвата. Обучается преследованию 
+              быстрой цели в условиях волнения и выходу в зону поражения с учетом инерции водного диска.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Водо измещение</span><b>800 кг</b></div>
+              <div><span>Макс. скорость</span><b>60 уз.</b></div>
+              <div><span>Радиус циркуляции</span><b>25 м</b></div>
+              <div><span>Разгона 0-50 уз</span><b>8 сек</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">Открыть Процедурный Тренажер</a>
+          </div>
+        </article>
+		
+      <!--  класс агента 2 морские-->
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type7.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Патрульный Катер (Тип II)</h3>
+            <div class="agent-class-tag">Море > Катер </div>
+            <p class="agent-desc">
+              Долгосрочный патрульный аппарат для охраны акваторий. Обучается маршрутному движению, 
+              распознаванию целей на фоне помех и удержанию заданной дистанции при сопровождении.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Водо измещение</span><b>3 500 кг</b></div>
+              <div><span>Крейсерская скорость</span><b>30 уз.</b></div>
+              <div><span>Автономность</span><b>48 ч</b></div>
+              <div><span>Сектор обзора РЛС</span><b>270°</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+		
+      <!--  класс агента 3 морские-->	
+		        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type9.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Ударный катер (Тип III)</h3>
+            <div class="agent-class-tag">Море > Катер </div>
+            <p class="agent-desc">
+              Маневренный ударный дрон с высокими перегрузками. Тренируется на сближение с хорошо 
+              защищенным противником, уклонение от огня и точный выход на линию пуска ракет.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Водо измещение</span><b>1 200 кг</b></div>
+              <div><span>Макс. скорость</span><b>75 уз.</b></div>
+              <div><span>Макс. перегрузка</span><b>3 G</b></div>
+              <div><span>Масса БЧ</span><b>400 кг</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+      </div>
+    </section>
+	
+    <!-- ========================================== -->
+    <!-- РАЗДЕЛ 4: ТРАНСПОРТНЫЕ АГЕНТЫ             -->
+    <!-- ========================================== -->
+    <section id="transport" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker">Класс 04</div>
+        <h2>Транспортные агенты</h2>
+      </div>
+      
+      <div class="agents-grid">
+        <!-- Карточка: Авиационный транспортник -->
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type4.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Грузовой БПЛА (Тип T-Air)</h3>
+            <div class="agent-class-tag">Транспорт > Авиация</div>
+            <p class="agent-desc">
+              Тяжелый грузовой БПЛА для логистики контейнеров. Обучается маршрутному полету, 
+              экономии топлива и критическому заходу на посадку при отказе одного двигателя.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Масса (брутто)</span><b>1 500 кг</b></div>
+              <div><span>Грузо подъемность</span><b>3 500 кг</b></div>
+              <div><span>Крейсерская скорость</span><b>150 км/ч</b></div>
+              <div><span>Дальность полета</span><b>1 500 км</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+
+        <!-- Карточка: Автотранспорт -->
+        <article class="agent-card">
+          <div class="agent-img">
+            <img src="/assets/agents/plane-type5.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Автономный тягач (Тип T-Ground)</h3>
+            <div class="agent-class-tag">Транспорт > Автотранспорт</div>
+            <p class="agent-desc">
+              Автономный фургон для магистральных перевозок. Отрабатывает удержание полосы, 
+              безопасную дистанцию в колонне и экстренное торможение при отказе тормозов.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Масса (брутто)</span><b>20 000 кг</b></div>
+              <div><span>Грузопо
+			  дъемность</span><b>15 000 кг</b></div>
+              <div><span>Макс. скорость</span><b>90 км/ч</b></div>
+              <div><span>Тормозной путь</span><b>45 м</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+
+        <!-- Карточка: Водный транспорт -->
+        <article class="agent-card">
+          <div class="agent-img">
+        <img src="/assets/agents/plane-type6.png" alt="Ударный Fixed-Wing">
+          </div>
+          <div class="agent-content">
+            <h3>Беспилотная баржа (Тип T-Water)</h3>
+            <div class="agent-class-tag">Транспорт > Водные</div>
+            <p class="agent-desc">
+              Грузовая баржа для речных и прибрежных маршрутов. Изучается предотвращение 
+              столкновений в узких фарватерах и действия при пробитии отсека или отказе рулей.
+            </p>
+            
+            <div class="metrics agent-ttx">
+              <div><span>Водо
+			  измещение</span><b>50 000 тонн</b></div>
+              <div><span>Грузопо
+			  дъемность</span><b>30 000 тонн</b></div>
+              <div><span>Крейсерская скорость</span><b>15 уз.</b></div>
+              <div><span>Автономность</span><b>30 суток</b></div>
+            </div>
+
+            <a href="#" class="agent-btn">В разработке</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+      <!--  </div> – закрывает контейнер (блок), внутри которого могут быть другие
+	  элементы (кнопки, текст, слайдеры). В симуляторе такие блоки используются для
+	  группировки элементов интерфейса (панели, настройки, статистика).-->
+	  <!-- </article> – закрывает раздел, предназначенный для самостоятельного 
+	  содержимого (статья, описание, новость). В вашем проекте может использоваться 
+	  для страниц документации (например, whitepaper.html).-->
+	  <!-- </section> – закрывает крупный логический раздел страницы ПОЛОСКА ГОРИЗОНТАЛЬНАЯ. 
+	  например, левую панель с параметрами, правую с информацией, главную область с canvas.-->

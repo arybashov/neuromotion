@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Обучение RL - PolygonSite 3D</title>
+  <style>
+    .branch-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px 0;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+      padding: 4px 0;
+    }
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font: 500 11px/1.4 Rajdhani, sans-serif;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .metric-item .metric-label { color: rgba(255,255,255,0.45); }
+    .metric-item b { color: #5ba3e8; font-weight: 600; }
+
+    .training-page {
+      display: grid !important;
+      grid-template-columns: 1fr 460px;
+      grid-template-rows: auto 1fr;
+      column-gap: 5mm;
+    }
+    .training-header { grid-column: 1; grid-row: 1; }
+    .training-shell {
+      grid-column: 1; grid-row: 2;
+      height: 100%; min-height: 0;
+    }
+    .node-workspace {
+      /* !important — общий styles.css задаёт .node-workspace как 2-колоночный grid
+         (старая раскладка) и при сборке Vite перебивает инлайн по порядку загрузки */
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: none !important;
+      min-height: 0;
+      height: 100%;
+    }
+    .node-inspector {
+      grid-column: 2; grid-row: 1 / -1;
+      height: 100%;
+      display: flex; flex-direction: column;
+    }
+    .node-inspector > .btn-row:last-of-type { margin-top: auto; }
+    .node-editor-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      border: 1px solid rgba(59,130,246,0.7);
+      border-radius: 10px;
+      box-shadow: 0 0 14px rgba(59,130,246,0.3);
+    }
+    .node-editor-content {
+      flex: 1; display: flex; flex-direction: column;
+      margin: 0 3mm 5mm 3mm;
+      border-top: 1px solid rgba(59,130,246,0.7) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .training-header {
+      border-top: 1px solid rgba(59,130,246,0.7) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .node-inspector {
+      border: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .header-back-btn {
+      display: inline-block; margin: 0; padding: 5px 12px;
+      width: 220px; flex-shrink: 0;
+      background: rgba(232,168,48,0.08); border: 1px solid rgba(232,168,48,0.35);
+      color: #e8a830; font-size: 11px; cursor: pointer; border-radius: 4px;
+      text-decoration: none; transition: color 0.12s, border-color 0.12s;
+      font-family: inherit; text-align: center;
+    }
+    .header-back-btn:hover { color: #f0c040; border-color: rgba(232,168,48,0.6); }
+    .back-btn-arrow { font-size: 14px; }
+    .header-top {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 4px; padding-left: 7cm;
+    }
+    .header-top h1 { margin-bottom: 0; flex: 1; font-size: 16px; color: #fff; }
+    .training-header {
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 8px 16px;
+    }
+    .training-status-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 4px 16px; background: rgba(232,168,48,0.1);
+      border-bottom: 1px solid rgba(232,168,48,0.2);
+      font: 500 10px/1.3 "SF Mono", monospace; color: #e8a830;
+    }
+    .tsb-label { font-weight: 700; text-transform: uppercase; }
+    .tsb-lesson { color: #ccc; }
+    .tsb-progress { color: #5ba3e8; }
+    .tsb-time { color: #888; margin-left: auto; }
+    .banner-2d {
+      background: rgba(91,163,232,0.06);
+      border-top: 1px solid rgba(59,130,246,0.25);
+      border-bottom: 1px solid rgba(59,130,246,0.25);
+      border-radius: 8px;
+      padding: 6px 12px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      margin: 0 3mm 5px 3mm;
+    }
+    .schema-svg { width: 100%; height: auto; }
+    body.docs-body.training-body { overflow: hidden !important; height: 100vh; }
+    .training-page { height: calc(100vh - 42px); overflow: hidden; }
+    .info-row {
+      display: flex; gap: 5px; flex-shrink: 0;
+      margin: 0 3mm 3mm 3mm;
+    }
+    .info-block {
+      flex: 1; width: 50%;
+      padding: 10px 16px;
+      background: #0b0b0d;
+      border-top: 1px solid rgba(59,130,246,0.7) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .info-title {
+      font: 600 10px/1.3 Rajdhani, sans-serif; text-transform: uppercase;
+      letter-spacing: 1.2px; color: rgba(255,255,255,0.35);
+      margin-bottom: 6px;
+    }
+    .info-content { font: 500 12px/1.4 Rajdhani, sans-serif; color: #aaa; }
+    .prog-bar {
+      width: 100%; height: 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 5px; overflow: hidden; margin-bottom: 6px;
+    }
+    .prog-fill {
+      height: 100%; border-radius: 5px; transition: width 0.4s;
+      background: linear-gradient(90deg, #5ba3e8, #7b6fe0, #9a8fe0);
+    }
+    .prog-text { font-size: 11px; }
+    .mini-chart { margin-top: 10px; }
+    .mini-chart span { font: 600 8px/1.2 Rajdhani,sans-serif; text-transform: uppercase; letter-spacing: 0.6px; color: #666; display: block; margin-bottom: 2px; }
+    .mini-chart svg { width: 100%; height: 30px; display: block; }
+    .chip-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip-grid .chip {
+      font-size: 9px; font-family: "SF Mono", "Fira Code", monospace;
+      color: #999; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .chip-grid .chip b { color: #e8a830; }
+    .cls-tabs {
+      display: flex; gap: 4px; padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0; overflow-x: auto;
+    }
+    .cls-tab {
+      padding: 4px 10px; font: 600 11px/1.3 Rajdhani, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.07); border-radius: 4px;
+      background: transparent; color: rgba(255,255,255,0.4);
+      cursor: pointer; transition: 0.12s; white-space: nowrap;
+    }
+    .cls-tab:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+    .cls-tab.active { color: #fff; border-color: #5ba3e8; background: rgba(91,163,232,0.12); }
+    .cls-tab.facult { border-color: rgba(91,163,232,0.4); color: #5ba3e8; }
+    .cls-tab.facult.active { border-color: #5ba3e8; background: rgba(91,163,232,0.12); color: #5ba3e8; }
+
+    .lesson-canvas {
+      /* safe center — при переполнении центрирование не обрезает левый край
+         (иначе первая карточка уходит под левую границу без возможности доскролла) */
+      flex: 1; display: flex; align-items: center; justify-content: safe center;
+      padding: 20px; overflow: auto; gap: 8px;
+    }
+    .ls-node {
+      width: calc(160px + 5mm); min-height: 112px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; background: rgba(255,255,255,0.03);
+      padding: 8px 10px; cursor: pointer; transition: 0.12s;
+      flex-shrink: 0; position: relative;
+      display: flex; flex-direction: column;
+    }
+    .ls-node:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.06); }
+    .ls-node.selected { border-left-width: 3mm; border-color: #e8a830; background: rgba(232,168,48,0.15); }
+    .ls-node.training { border-color: #e8a830; box-shadow: 0 0 10px rgba(232,168,48,0.3); }
+    .ls-node.completed { border-color: #4ecb71; background: rgba(78,203,113,0.08); }
+
+    .ls-node.locked { opacity: 0.35; cursor: not-allowed; border-color: rgba(255,255,255,0.06); }
+    .ls-node.locked:hover { border-color: rgba(255,255,255,0.06); background: transparent; }
+    .ls-reset-btn {
+      position: absolute; top: 3px; right: 3px; z-index: 2;
+      display: none; width: 16px; height: 16px; padding: 0;
+      border: none; border-radius: 50%;
+      background: rgba(255,255,255,0.08); color: #777;
+      cursor: pointer; font: 600 10px/16px Rajdhani,sans-serif; text-align: center;
+      transition: 0.15s;
+    }
+    .ls-reset-btn:hover { background: rgba(255,80,80,0.3); color: #ff6b6b; }
+    .ls-node:hover .ls-reset-btn { display: block; }
+    .ls-node.locked .ls-reset-btn { display: none !important; }
+    .ls-node .ls-num { font: 700 10px/1.2 Rajdhani, sans-serif; color: #e8a830; margin-bottom: 2px; }
+    .ls-node.locked .ls-num { color: #555; }
+    .ls-node .ls-title { font: 600 11px/1.3 Rajdhani, sans-serif; color: #ddd; }
+    .ls-node .ls-status { font: 500 12px/1.2 Rajdhani, sans-serif; color: #777; margin-top: calc(4px + 3mm); }
+    .ls-remain { font: 500 10px/1.2 "SF Mono", monospace; color: #e8a830; margin-top: 2px; }
+    .ls-node .ls-bar { height: calc(10px + 2mm); border-radius: 5px; background: rgba(255,255,255,0.06); margin-top: calc(6px + 3mm); overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+    .ls-node .ls-bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; position: absolute; left: 0; top: 0; background: linear-gradient(90deg, #5ba3e8, #9a8fe0); }
+    .ls-node .ls-bar-text { position: relative; z-index: 1; font: 600 16px/1 Rajdhani,sans-serif; color: #555; letter-spacing: 0.5px; }
+    .ls-node .ls-metrics { font: 500 12px/1.2 Rajdhani, sans-serif; color: #666; margin-top: 2px; }
+    .ls-node .ls-metrics .good { color: #4ecb71; }
+    .ls-node .ls-metrics .warn { color: #e8a830; }
+    .ls-arrow {
+      width: 24px; height: calc(3px - 0.3mm); background: rgba(232,168,48,0.25);
+      flex-shrink: 0; position: relative; align-self: center;
+    }
+    .ls-arrow::after {
+      content: ''; position: absolute; right: -1px; top: 50%; translate: 0 -50%;
+      border: 5px solid transparent; border-left-color: rgba(232,168,48,0.25);
+    }
+    .ls-arrow.ready { background: #e8a830; }
+    .ls-arrow.ready::after { border-left-color: #e8a830; }
+    .ls-row {
+      display: flex; align-items: stretch; gap: 6px;
+    }
+
+    /* ── Faculty tab styles ── */
+    .faculty-wrap { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 760px; margin: 0 auto; }
+    .faculty-prog { text-align: center; }
+    .faculty-prog .prog-bar { height: 14px; border-radius: 7px; }
+    .faculty-prog .prog-fill { border-radius: 7px; }
+    .faculty-prog-text { font: 500 11px/1.3 Rajdhani, sans-serif; color: #999; margin-top: 4px; }
+    .faculty-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .faculty-card {
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+      padding: 10px 8px; cursor: pointer; transition: 0.12s;
+      background: rgba(255,255,255,0.02); position: relative;
+      text-align: center;
+    }
+    .faculty-card:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); }
+    .faculty-card.selected { border-width: 2px; }
+    .faculty-card.completed { border-color: #4ecb71; background: rgba(78,203,113,0.06); }
+    .faculty-card .fc-label { font: 700 12px/1.3 Rajdhani, sans-serif; color: #ddd; margin-bottom: 2px; }
+    .faculty-card .fc-name { font: 500 9px/1.2 Rajdhani, sans-serif; color: #777; margin-bottom: 6px; }
+    .faculty-card .fc-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; margin-bottom: 3px; }
+    .faculty-card .fc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .faculty-card .fc-info { font: 500 9px/1.2 Rajdhani, sans-serif; color: #666; }
+    .faculty-card .fc-info .done { color: #4ecb71; }
+    .faculty-card .fc-btn {
+      display: inline-block; margin-top: 6px; padding: 3px 12px;
+      font: 600 9px/1.2 Rajdhani, sans-serif; text-transform: uppercase; letter-spacing: 0.5px;
+      border: 1px solid rgba(78,203,113,0.4); border-radius: 3px;
+      background: transparent; color: #4ecb71; cursor: pointer; transition: 0.12s;
+    }
+    .faculty-card .fc-btn:hover { background: rgba(78,203,113,0.1); }
+    .faculty-card .fc-btn:disabled { opacity: 0.3; cursor: default; }
+    /* ── Mode toggle ── */
+    .mode-switch { display: flex; gap: 0; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; padding-right: 0.4mm; }
+    .mode-btn { padding: 4px 12px; font: 600 10px/1.3 Rajdhani,sans-serif; cursor: pointer; border: none; background: rgba(255,255,255,0.04); color: #888; transition: 0.12s; }
+    .mode-btn.active { background: rgba(91,163,232,0.2); color: #5ba3e8; }
+    .mode-btn:first-child { border-right: 1px solid rgba(255,255,255,0.08); }
+    .faculty-class-lessons {
+      border-top: 1px solid rgba(255,255,255,0.07); padding-top: 12px;
+    }
+    .faculty-class-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .faculty-class-header h3 { font: 700 13px/1.3 Rajdhani, sans-serif; color: #ddd; margin: 0; }
+    button { color: #fff; }
+    .node-inspector .docs-kicker,
+    .node-inspector .panel-title,
+    .node-inspector .ml-row span { color: #fff !important; }
+    .node-inspector .ml-row b { color: #999; }
+    .node-inspector .btn-row button {
+      color: #5ba3e8 !important;
+      border-color: rgba(91,163,232,0.35) !important;
+    }
+    .node-inspector .btn-row button:hover {
+      background: rgba(91,163,232,0.08) !important;
+      border-color: #5ba3e8 !important;
+    }
+    .node-inspector .btn-row button.training-active {
+      color: #e8a830 !important;
+      border-color: #e8a830 !important;
+      background: rgba(232,168,48,0.1) !important;
+    }
+    .weight-reset-btn {
+      font: 400 8px/1 monospace; color: #e8a830; background: none; border: 1px solid rgba(232,168,48,0.3);
+      border-radius: 50%; width: 16px; height: 16px; cursor: pointer; padding: 0; margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .weight-reset-btn:hover { color: #fff; border-color: #e8a830; background: rgba(232,168,48,0.15); }
+    .panel-title { display: flex; align-items: center; }
+    .reward-comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; font: 500 10px/1.4 "SF Mono", monospace; }
+    .reward-comp-grid div { display: flex; justify-content: space-between; }
+    .reward-comp-grid span { color: #666; }
+    .reward-comp-grid b { color: #5ba3e8; min-width: 50px; text-align: right; }
+    .node-inspector .mode-btn { color: #888 !important; }
+    .node-inspector .mode-btn.active { color: #5ba3e8 !important; background: rgba(91,163,232,0.2); }
+    .node-inspector h2 { color: #5ba3e8 !important; }
+    .node-inspector input[type=number] {
+      border-color: rgba(91,163,232,0.35) !important;
+      color: #5ba3e8 !important;
+    }
+    .node-inspector .weight-grid input[type=range] {
+      background: rgba(91,163,232,0.2) !important;
+    }
+    .node-inspector .weight-grid input[type=range]::-webkit-slider-thumb {
+      background: #5ba3e8 !important;
+    }
+    .node-inspector .weight-grid label > span:last-child {
+      color: #5ba3e8 !important;
+    }
+    .node-inspector .weight-tooltip {
+      border-color: rgba(91,163,232,0.42) !important;
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body class="docs-body training-body">
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a class="active" href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+
+  <main class="training-page">
+    <header class="training-header">
+      <a class="back-btn header-back-btn" href="agent-training.html">
+        <span class="back-btn-arrow">←</span> Программа RL
+      </a>
+      <div class="header-top">
+        <h1>2D Обучение агента — программа 10 классов</h1>
+      </div>
+    </header>
+    <div class="training-status-bar" id="trainingStatusBar" style="display:none">
+      <span class="tsb-label">Обучение:</span>
+      <span class="tsb-lesson" id="tsbLesson">-</span>
+      <span class="tsb-progress" id="tsbProgress">0%</span>
+      <span class="tsb-time" id="tsbTime">--</span>
+    </div>
+    <section class="training-shell">
+      <div class="node-workspace">
+        <div class="node-editor-wrap">
+          <div class="banner-2d" id="bannerSchema"></div>
+          <div class="info-row">
+            <div class="info-block info-progress">
+              <div class="info-title">Прогресс обучения</div>
+              <div class="info-content" id="progressContent">← Выберите класс</div>
+              <div class="mini-chart svg-chart"><span>награда</span><svg id="rewardSpark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+              <div class="mini-chart muted svg-chart"><span>разница с baseline</span><svg id="deltaSpark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+            </div>
+          </div>
+          <div class="node-editor-content">
+            <div class="cls-tabs" id="clsTabs"></div>
+            <div class="lesson-canvas" id="lessonCanvas">
+              <div class="ls-placeholder">Выберите класс</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <aside class="node-inspector">
+      <div class="docs-kicker">Инспектор</div>
+      <div class="inspector-grid">
+      <div class="inspector-section">
+        <div class="ppo-grid inspector-ppo">
+          <label>Эпизоды <input id="nodeEpisodesInput" type="number" value="20" min="1"></label>
+          <label>LR <input id="nodeLr" type="number" value="0.0001" step="0.00001"></label>
+        </div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="panel-title">Веса наград <button id="btnResetWeights" type="button" class="weight-reset-btn" title="Сбросить веса к шаблонным">↺</button></div>
+        <div class="weight-grid" id="nodeWeights">
+          <label data-tip="Награда за сокращение 3D-дистанции до текущей учебной точки на каждом шаге."><span class="weight-name">Приближение</span><input data-weight="progress" type="range" min="0" max="3" value="1.0" step="0.1"><span>1.0</span></label>
+          <label data-tip="Фиксированный бонус за вход в радиус waypoint."><span class="weight-name">Точка</span><input data-weight="waypoint" type="range" min="0" max="6" value="1.0" step="0.1"><span>1.0</span></label>
+          <label data-tip="Штраф за отклонение от заданной высоты."><span class="weight-name">Высота</span><input data-weight="altitude" type="range" min="0" max="3" value="1.0" step="0.1"><span>1.0</span></label>
+          <label data-tip="Штраф за каждый тик симуляции. Чем выше вес, тем сильнее агент спешит."><span class="weight-name">Время</span><input data-weight="time" type="range" min="0" max="0.1" value="0.01" step="0.005"><span>0.01</span></label>
+          <label data-tip="Штраф за падение или потерю аппарата. Большой вес делает обучение осторожнее."><span class="weight-name">Авария</span><input data-weight="crash" type="range" min="0" max="20" value="5.0" step="0.5"><span>5.0</span></label>
+          <label data-tip="Награда за стабильность вертикальной скорости: ±1 балл при |vz|≤0.1 м/с. /100."><span class="weight-name">V (верт)</span><input data-weight="vzStability" type="range" min="0" max="5" value="1.0" step="0.1"><span>1.0</span></label>
+          <label data-tip="Награда за выдерживание курса на точку: ±1 балл при ошибке ≤0.1°. /100."><span class="weight-name">Курс</span><input data-weight="headingStability" type="range" min="0" max="5" value="1.0" step="0.1"><span>1.0</span></label>
+          <label data-tip="Награда за стабильность тангажа: ±1 балл при |θ|≤0.1°. /100."><span class="weight-name">Тангаж</span><input data-weight="pitchStability" type="range" min="0" max="5" value="1.0" step="0.1"><span>1.0</span></label>
+          <label data-tip="Награда за стабильность скорости: ±1 балл при откл. ≤10 км/ч. /100."><span class="weight-name">V (гор)</span><input data-weight="speedStability" type="range" min="0" max="5" value="1.0" step="0.1"><span>1.0</span></label>
+        </div>
+        <div id="weightTooltip" class="weight-tooltip" role="tooltip"></div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="panel-title">Метрики</div>
+        <div class="metrics-grid">
+          <div class="metric-item"><span class="metric-label">Награда</span><b id="nodeReward">-</b></div>
+          <div class="metric-item"><span class="metric-label">Лучшая</span><b id="nodeBestReward">-</b></div>
+          <div class="metric-item"><span class="metric-label">EMA награда</span><b id="nodeEmaReward">-</b></div>
+          <div class="metric-item"><span class="metric-label">Δ baseline</span><b id="nodeDelta">-</b></div>
+          <div class="metric-item"><span class="metric-label">PPO loss</span><b id="nodeLoss">-</b></div>
+          <div class="metric-item"><span class="metric-label">Прогресс</span><b id="nodeProgress">-</b></div>
+          <div class="metric-item" title="Авто-сходимость: 1 запуск + 4 добучения = 5 попыток × эпизоды.&#10;Если за 5 попыток награда не стабилизируется — процесс останавливается."><span class="metric-label">Сходимость</span><b id="nodeConverge">-</b></div>
+        </div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="panel-title">Состав награды</div>
+        <div class="reward-comp-grid" id="trainRewardComp">
+          <div><span>Прогресс</span><b id="trcProgress">-</b></div>
+          <div><span>Точка</span><b id="trcWaypoint">-</b></div>
+          <div><span>Высота</span><b id="trcAltitude">-</b></div>
+          <div><span>Время</span><b id="trcTime">-</b></div>
+          <div><span>V верт</span><b id="trcVz">-</b></div>
+          <div><span>Курс</span><b id="trcHeading">-</b></div>
+          <div><span>Тангаж</span><b id="trcPitch">-</b></div>
+          <div><span>V гор</span><b id="trcSpeed">-</b></div>
+          <div><span>Авария</span><b id="trcCrash">-</b></div>
+          <div><span>Сумма</span><b id="trcTotal">-</b></div>
+        </div>
+      </div>
+
+      <div class="btn-row compact-buttons mt-10">
+        <button id="btnStartNode" type="button" title="Начать заново — сбросить веса и историю">Запуск RL</button>
+        <button id="btnResumeNode" type="button" title="Продолжить с последнего чекпоинта">Продолжить</button>
+        <button id="btnStopNode" type="button" disabled>Стоп</button>
+        <button id="btnResetNode" type="button" title="Сбросить историю обучения и чекпоинт (параметры остаются)">Сброс RL</button>
+      </div>
+      <div class="btn-row compact-buttons mt-10">
+        <button id="btnPreviewNode" type="button">Смотреть</button>
+        <button class="mode-btn active" id="modeBtnManual" data-mode="manual" style="font:500 10px Rajdhani,sans-serif;padding:5px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;cursor:pointer;color:#5ba3e8;background:rgba(91,163,232,0.08);">Ручное</button>
+        <button id="btnAutoOpt" type="button" style="font:500 10px Rajdhani,sans-serif;padding:5px 10px;border:1px solid rgba(232,168,48,0.4);border-radius:4px;cursor:pointer;color:#e8a830;background:rgba(232,168,48,0.08);">Авто-опт</button>
+      </div>
+      <label id="autoOptBeforeStartRow" title="Перед запуском ноды сначала подобрать веса (Авто-опт). На «Продолжить» не действует." style="display:flex;align-items:center;gap:6px;margin-top:6px;font:500 10px Rajdhani,sans-serif;color:#e8a830;cursor:pointer;">
+        <input type="checkbox" id="chkAutoOptBeforeStart" style="cursor:pointer;"> Авто-опт перед запуском
+      </label>
+      <div class="ml-row" id="autoOptStatus" style="display:none;margin-top:4px;"><span>Авто-опт</span><b id="autoOptCycle">0/0</b></div>
+    </aside>
+  </main>
+
+  <script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const TRAINING_API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://127.0.0.1:8787/api/train'
+  : 'http://neuromotion.ru:8787/api/train';
+const STORAGE_KEY = 'polygon3d.agentTraining.v1';
+const PREVIEW_KEY = 'polygon3d.previewNode.v1';
+const TRAINING_STATE_KEY = 'polygon3d.activeTraining.v1';
+
+function syncTrainingState(lesson) {
+  if (!activeTrainingKey) { try { localStorage.removeItem(TRAINING_STATE_KEY); } catch(_) {} updateTrainingStatusBar(); return; }
+  var p = parseKey(activeTrainingKey);
+  try {
+    localStorage.setItem(TRAINING_STATE_KEY, JSON.stringify({
+      key: activeTrainingKey,
+      classId: p ? p.clsId : 1,
+      branch: p ? p.branch : 'drone',
+      lessonIdx: p ? p.idx : 0,
+      title: (lesson && lesson.title) || '',
+      progress: (lesson && lesson.metrics && lesson.metrics.progress != null) ? Math.round(lesson.metrics.progress * 100) : 0,
+      status: (lesson && lesson.status) || '',
+      jobId: activeJobId,
+      updated: Date.now(),
+    }));
+  } catch(_) {}
+  updateTrainingStatusBar();
+}
+
+function updateTrainingStatusBar() {
+  var bar = document.getElementById('trainingStatusBar');
+  if (!bar) return;
+  if (!activeTrainingKey) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var p = parseKey(activeTrainingKey);
+  var lesson = getLessonData(activeTrainingKey);
+  var label = p ? 'C' + p.clsId + (p.branch === 'anti' ? 'A' : p.branch === 'drone' ? 'D' : 'J') + 'У' + (p.idx + 1) : '';
+  document.getElementById('tsbLesson').textContent = label + ' ' + (lesson ? lesson.title || '' : '');
+  var pct = (lesson && lesson.metrics && lesson.metrics.progress != null) ? Math.round(lesson.metrics.progress * 100) : 0;
+  document.getElementById('tsbProgress').textContent = pct + '%';
+  document.getElementById('tsbTime').textContent = lesson ? lesson.status || '' : '';
+  renderNodeEstimate(lesson);
+}
+
+function renderNodeEstimate(lesson) {
+  if (!lesson || !lesson.metrics || lesson.metrics.progress == null) return;
+  var progress = lesson.metrics.progress;
+  if (progress >= 1 || progress <= 0) return;
+  var elapsed = lesson.metrics._startTime ? (Date.now() - lesson.metrics._startTime) / 1000 : 0;
+  if (elapsed < 5) return;
+  var totalEst = elapsed / progress;
+  var remaining = Math.round(totalEst - elapsed);
+  lesson.metrics._remaining = remaining;
+}
+
+const CLS_DATA = [
+  { id:1, label:'Только цель', mode:'split', color:'#5ba3e8',
+    titles:['Движение по прямой на постоянной высоте','Движение с мин на макс высоту','Движение с макс на мин высоту','Разворот на 90°','Разворот на 180°, 270° и 360°'],
+    antiTitles:['Взлёт и висение','Перемещение','Разворот на месте','Перемещение + разворот','Полёт по квадрату'] },
+  { id:2, label:'Инерция и пределы', mode:'split', color:'#e87a5b',
+    titles:['Выход на прямую с инерцией','Поворот с креном','Смена высоты с инерцией','Серпантин','Разворот на месте'],
+    antiTitles:['Инерция разгона','Торможение с точностью','Поворот с креном','Серпантин','Стабилизация'] },
+  { id:3, label:'Ограниченный обзор', mode:'split', color:'#e8a830',
+    titles:['Потеря цели','Поиск после прохода','Сканирование','Удержание в манёвре','Слепая зона'],
+    antiTitles:['Потеря цели','Сканирование сектора','Захват после прохода','Удержание в манёвре','Поиск в слепой зоне'] },
+  { id:4, label:'2.5D профиль', mode:'split', color:'#9a8fe0',
+    titles:['Выход в точку в 3D','Поворот с набором','Пике с доворотом','Ветровой снос','Порыв ветра'],
+    antiTitles:['Выход в 3D точку','Вертикальный профиль','Спираль','Ветровой снос','Восстановление'] },
+  { id:5, label:'Одиночный противник', mode:'joint', color:'#e04b4b',
+    titles:['Уклонение от лобовой','Контрманёвр','Смена высоты','Ложный манёвр','Достижение под давлением'] },
+  { id:6, label:'Адаптивность', mode:'joint', color:'#3ecaa5',
+    titles:['Распознавание паттерна','Смена стратегии','Обучение на эпизодах','Ловушка','Многоходовка'] },
+  { id:7, label:'ПВО', mode:'joint', color:'#e87a5b',
+    titles:['Прорыв ПВО на малой','Зенитный манёвр','Подавление','Маршрут огибания','Прорыв с ложными целями'] },
+  { id:8, label:'Рой', mode:'joint', color:'#e8a830',
+    titles:['Уклонение от роя','Контратака','Распознавание тактики','Противодействие рой-рою','Подавление роя'] },
+  { id:9, label:'Ресурсы', mode:'joint', color:'#5ba3e8',
+    titles:['Экономия топлива','Управление боекомплектом','Разведка и возврат','Приоритет целей','Максимум эффекта'] },
+  { id:10, label:'Полный сценарий', mode:'joint', color:'#4ecb71',
+    titles:['Взлёт и разведка','Прорыв ПВО','Бой с роем','Удар по цели','Возврат на базу'] },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let currentTab = 0;
+let selectedKey = null;
+let activeBranch = 'all';
+let lessonData = {};
+let activeTrainingKey = null;
+let activeJobId = null;
+let trainingTimer = null;
+let trainingChain = [];
+let chainIndex = 0;
+let trainingMode = 'manual';
+
+var convergeRetries = {};
+var MAX_CONVERGE_RETRIES = 5;
+var MAX_CONVERGE_TOTAL_EPISODES = 120;
+var lastInspectorKey = null;
+
+var WEIGHT_PROFILES = [
+  { progress: 1.0, waypoint: 2.0, precision: 1.0, altitude: 0.05, time: 0.01, crash: 5.0 },
+  { progress: 1.5, waypoint: 3.0, precision: 1.5, altitude: 0.08, time: 0.01, crash: 6.0 },
+  { progress: 2.0, waypoint: 4.0, precision: 2.0, altitude: 0.12, time: 0.01, crash: 8.0 },
+  { progress: 1.0, waypoint: 2.0, precision: 2.5, altitude: 0.05, time: 0.01, crash: 5.0 },
+  { progress: 1.5, waypoint: 3.0, precision: 1.0, altitude: 0.05, time: 0.01, crash: 10.0 },
+];
+
+function isLessonConverged(chart) {
+  var rewards = chart && chart.rewards;
+  if (!Array.isArray(rewards) || rewards.length < 5) return false;
+  var evals = chart && chart.evals;
+  if (Array.isArray(evals) && evals.length) {
+    var lastEval = evals[evals.length - 1];
+    if (lastEval && lastEval.of && lastEval.arrived < lastEval.of) return false;
+  }
+  var last = rewards.slice(-5);
+  var avg = last.reduce(function(s, v) { return s + v; }, 0) / last.length;
+  if (avg <= 0) return false;
+  var min = Math.min.apply(null, last);
+  var max = Math.max.apply(null, last);
+  return (max - min) / Math.abs(avg) < 0.08;
+}
+
+function getLessonBatchEpisodes(lesson) {
+  return Math.max(1, Number(lesson?.train?.episodes) || 20);
+}
+
+function getLessonDoneEpisodes(lesson) {
+  return Math.max(0, Number(lesson?.convergeEpisodes || lesson?.totalEpisodes || 0));
+}
+
+function getLessonDisplayTargetEpisodes(lesson, key) {
+  var batch = getLessonBatchEpisodes(lesson);
+  var done = getLessonDoneEpisodes(lesson);
+  var retries = key ? (convergeRetries[key] || 0) : 0;
+  var isAutoConverging = retries > 0 || done > batch;
+  var hardLimit = getLessonAutoConvergeLimit(lesson);
+  if (lesson?.convergeEpisodes) return done > hardLimit ? hardLimit : Math.max(batch, done);
+  if (isAutoConverging) return hardLimit;
+  return Math.max(done, batch);
+}
+
+function getLessonAutoConvergeLimit(lesson) {
+  var batch = getLessonBatchEpisodes(lesson);
+  return Math.max(batch, Math.min(batch * (MAX_CONVERGE_RETRIES + 1), MAX_CONVERGE_TOTAL_EPISODES));
+}
+
+function getLessonRunEpisodes(lesson, key, resume) {
+  var batch = getLessonBatchEpisodes(lesson);
+  if (!resume || !(key && convergeRetries[key] > 0)) return batch;
+  var remaining = getLessonAutoConvergeLimit(lesson) - getLessonDoneEpisodes(lesson);
+  return Math.max(1, Math.min(batch, remaining));
+}
+
+function getClsById(id) { for (var i = 0; i < CLS_DATA.length; i++) { if (CLS_DATA[i].id === id) return CLS_DATA[i]; } return null; }
+function getClsByTab(tabIdx) { return CLS_DATA[tabIdx] || null; }
+function lessonKey(clsId, branch, idx) { return 'c' + clsId + '_' + branch + '_l' + idx; }
+function parseKey(k) { var m = k.match(/c(\d+)_(\w+)_l(\d+)/); if (!m) return null; return { clsId: Number(m[1]), branch: m[2], idx: Number(m[3]) }; }
+function classLabel(clsId, branch, pad) {
+  var prefix = (clsId >= 1 && clsId <= 4 && branch === 'anti') ? 'A' : 'C';
+  return prefix + (pad ? String(clsId).padStart(2, '0') : clsId);
+}
+
+function getLessonData(key) { return lessonData[key] || null; }
+function setLessonData(key, data) { lessonData[key] = data; }
+
+// ═══════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+function saveState() {
+  try {
+    var payload = { version: 1, currentClass: currentTab + 1, currentLesson: 0, lessons: lessonData, currentBranch: activeBranch, trainingMode: trainingMode };
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        var existing = JSON.parse(raw);
+        if (existing.progressPct != null) payload.progressPct = existing.progressPct;
+      } catch(_) {}
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (_) {}
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (data.currentClass) currentTab = data.currentClass - 1;
+    if (data.currentBranch) {
+      if (data.currentBranch === 'drone' || data.currentBranch === 'anti' || data.currentBranch === 'joint') activeBranch = data.currentBranch;
+    }
+    if (data.lessons) {
+      Object.keys(data.lessons).forEach(function(k) {
+        var migrated = k.replace(/^(\w+_\w+)_(\d+)$/, '$1_l$2');
+        lessonData[migrated] = data.lessons[k];
+      });
+    }
+    if (data.trainingMode === 'auto' || data.trainingMode === 'manual') trainingMode = data.trainingMode;
+  } catch (_) { lessonData = {}; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderTabs() {
+  var el = document.getElementById('clsTabs');
+  if (!el) return;
+  var html = '';
+  // Anti tabs A1-A4 for split classes
+  for (var i = 0; i < CLS_DATA.length; i++) {
+    if (CLS_DATA[i].mode !== 'split') continue;
+    var active = (i === currentTab && activeBranch === 'anti') ? ' active' : '';
+    html += '<div class="cls-tab' + active + '" data-idx="' + i + '" data-branch="anti">' + classLabel(i + 1, 'anti', false) + '</div>';
+  }
+  // Drone tabs C1-C4 for split classes
+  for (var i = 0; i < CLS_DATA.length; i++) {
+    if (CLS_DATA[i].mode !== 'split') continue;
+    var active = (i === currentTab && activeBranch !== 'anti') ? ' active' : '';
+    html += '<div class="cls-tab' + active + '" data-idx="' + i + '" data-branch="drone">' + classLabel(i + 1, 'drone', false) + '</div>';
+  }
+  // Joint tabs C5-C10
+  for (var i = 0; i < CLS_DATA.length; i++) {
+    if (CLS_DATA[i].mode !== 'joint') continue;
+    var active = i === currentTab ? ' active' : '';
+    html += '<div class="cls-tab' + active + '" data-idx="' + i + '" data-branch="joint">' + classLabel(i + 1, 'joint', false) + '</div>';
+  }
+  html += '<div class="cls-tab facult' + (currentTab === CLS_DATA.length ? ' active' : '') + '" data-idx="' + CLS_DATA.length + '">Факультет</div>';
+  el.innerHTML = html;
+  el.querySelectorAll('.cls-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var idx = Number(tab.dataset.idx);
+      var newBranch = tab.dataset.branch;
+      if (idx === currentTab && (!newBranch || newBranch === activeBranch)) return;
+      currentTab = idx;
+      if (newBranch) {
+        activeBranch = newBranch;
+      }
+      selectedKey = null;
+      renderTabs();
+      renderCanvas();
+      clearInspector();
+      saveState();
+    });
+  });
+}
+
+function autoSelectFirst() {
+  if (selectedKey) return;
+  if (currentTab >= CLS_DATA.length) return;
+  var cls = getClsByTab(currentTab);
+  if (!cls) return;
+  var branch = activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti';
+  if (cls.mode === 'joint') branch = 'joint';
+  selectedKey = lessonKey(cls.id, branch, 0);
+}
+
+function renderCanvas() {
+  autoSelectFirst();
+  var canvas = document.getElementById('lessonCanvas');
+  if (!canvas) return;
+  if (currentTab >= CLS_DATA.length) {
+    renderFacultyView();
+    return;
+  }
+  var cls = getClsByTab(currentTab);
+  if (!cls) { canvas.innerHTML = '<div class="ls-placeholder">Нет данных</div>'; return; }
+
+  var branch = activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti';
+  if (cls.mode === 'joint') branch = 'joint';
+  var count = 5;
+  var titles = cls.mode === 'split' && branch === 'anti' ? cls.antiTitles : cls.titles;
+  var html = '<div class="ls-row">';
+  for (var i = 0; i < count; i++) {
+    var key = lessonKey(cls.id, branch, i);
+    var lesson = getLessonData(key) || { title: titles[i], status: 'готов к запуску', metrics: {} };
+    var isSelected = selectedKey === key;
+    var isTraining = activeTrainingKey === key;
+    var isCompleted = lesson.status && lesson.status.indexOf('заверш') !== -1;
+    var isLocked = false;
+    var parentK = getParentLessonKey(key);
+    if (parentK) {
+      var parentD = getLessonData(parentK);
+      isLocked = !parentD || !parentD.best;
+    }
+    var clsName = 'ls-node' + (isSelected ? ' selected' : '') + (isTraining ? ' training' : '') + (isCompleted ? ' completed' : '') + (isLocked ? ' locked' : '');
+    var totalEps = getLessonDisplayTargetEpisodes(lesson, key);
+    var doneEps = getLessonDoneEpisodes(lesson);
+    var pct = isCompleted ? 100 : Math.min(100, Math.round(doneEps / totalEps * 100));
+    var barColor = isCompleted ? '#5ba3e8' : isTraining ? '#e8a830' : '#555';
+    var r = lesson.metrics && lesson.metrics.reward;
+    var d = lesson.metrics && lesson.metrics.delta;
+    html += '<div class="' + clsName + '" data-key="' + key + '">' +
+      '<button class="ls-reset-btn" title="Сбросить урок">×</button>' +
+      '<div class="ls-num">УРОК ' + (i + 1) + '</div>' +
+      '<div class="ls-title">' + lesson.title + '</div>' +
+      '<div class="ls-bar"><span class="ls-bar-fill" style="width:' + pct + '%"></span><span class="ls-bar-text">' + doneEps + '/' + totalEps + '</span></div>' +
+      '<div class="ls-status">' + (lesson.status || '') + '</div>' +
+      (lesson.metrics && lesson.metrics._remaining ? '<div class="ls-remain">осталось ~' + lesson.metrics._remaining + 'с</div>' : '') +
+      '<div class="ls-metrics">' +
+        (r != null ? '<span class="good">R ' + Number(r).toFixed(2) + '</span>' : '') +
+        (d != null ? '<span>Δ ' + Number(d).toFixed(2) + '</span>' : '') +
+        (lesson.latest ? '<span class="warn"> ✓ cp</span>' : '') +
+      '</div></div>';
+    if (i < count - 1) {
+      var prevKey = lessonKey(cls.id, branch, i);
+      var prevData = getLessonData(prevKey);
+      var ready = prevData && prevData.status && prevData.status.indexOf('заверш') !== -1;
+      html += '<div class="ls-arrow' + (ready ? ' ready' : '') + '"></div>';
+    }
+  }
+  html += '</div>';
+  canvas.innerHTML = html;
+
+  canvas.querySelectorAll('.ls-node').forEach(function(node) {
+    node.addEventListener('click', function() {
+      if (node.classList.contains('locked')) return;
+      selectedKey = node.dataset.key;
+      showToast('lesson clicked: selectedKey=' + selectedKey);
+      renderCanvas();
+      populateInspector(selectedKey);
+    });
+  });
+  canvas.querySelectorAll('.ls-reset-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var key = btn.parentElement.dataset.key;
+      if (!confirm('Сбросить прогресс урока ' + (btn.parentElement.querySelector('.ls-title')?.textContent || key) + '? Это удалит чекпоинты и историю обучения.')) return;
+      resetLesson(key);
+    });
+  });
+  renderBannerSchema();
+  updateProgress();
+}
+
+function clearInspector() {
+  var setT = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  setT('nodeReward', '-'); setT('nodeBestReward', '-'); setT('nodeEmaReward', '-');
+  setT('nodeDelta', '-'); setT('nodeProgress', '-'); setT('nodeConverge', '-');
+  setT('nodeLatest', '-'); setT('nodeBest', '-'); setT('nodeSimReady', '-');
+  var lossEl = document.getElementById('nodeLoss'); if (lossEl) lossEl.textContent = '-';
+  setSvgSpark('rewardSpark', []); setSvgSpark('deltaSpark', []);
+  var s = document.getElementById('btnStartNode'); if (s) { s.disabled = false; s.textContent = 'Запуск RL'; }
+  var r = document.getElementById('btnResumeNode'); if (r) r.disabled = false;
+  var st = document.getElementById('btnStopNode'); if (st) st.disabled = true;
+  var pv = document.getElementById('btnPreviewNode'); if (pv) pv.disabled = false;
+}
+
+function populateInspector(key) {
+  if (!key) { clearInspector(); return; }
+  var p = parseKey(key);
+  if (!p) { clearInspector(); return; }
+  var cls = getClsById(p.clsId);
+  if (!cls) { clearInspector(); return; }
+  var lesson = getLessonData(key);
+  if (!lesson) { clearInspector(); return; }
+
+  var setT = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  var m = lesson.metrics || {};
+  setT('nodeReward', formatMetric(m.reward));
+  setT('nodeBestReward', formatMetric(m.bestReward));
+  setT('nodeEmaReward', m.emaReward != null ? formatMetric(m.emaReward) : '-');
+  setT('nodeDelta', formatMetric(m.delta));
+  setT('nodeProgress', formatPercent(m.progress));
+  var convEl = document.getElementById('nodeConverge');
+  if (convEl) {
+    var retries = convergeRetries[key] || 0;
+    var profileIdx = lesson.weightProfileIdx || 0;
+    var profileTag = profileIdx > 0 ? ' · прф ' + (profileIdx + 1) + '/' + WEIGHT_PROFILES.length : '';
+    convEl.textContent = isLessonConverged(lesson.chart) ? 'сошлась' + profileTag
+      : retries > 0 ? 'добучение ' + retries + '/' + MAX_CONVERGE_RETRIES + profileTag
+      : lesson.chart && lesson.chart.rewards && lesson.chart.rewards.length >= 5 ? 'не сошлась' + profileTag : 'ждём данные';
+  }
+  var lossEl = document.getElementById('nodeLoss');
+  if (lossEl) lossEl.textContent = m.loss != null ? Number(m.loss).toFixed(4) : '-';
+
+  // Состав награды — вклад каждого веса при типичных значениях компонентов
+  var w = lesson.weights || {};
+  var est = { progress: 0.01, waypoint: 0, altitude: 0.01, time: 0.02, vzStability: 0.01, headingStability: 0.01, pitchStability: 0.01, speedStability: 0.01, crash: 0 };
+  var totalEst = 0;
+  var fmtW = function(v) { return (v >= 0 ? '+' : '') + v.toFixed(3); };
+  var setW = function(id, key, sign) {
+    var val = (est[key] || 0) * (w[key] || 0) * (sign || 1);
+    totalEst += val;
+    var el = document.getElementById(id); if (el) el.textContent = fmtW(val);
+  };
+  setW('trcProgress', 'progress');
+  setW('trcWaypoint', 'waypoint');
+  setW('trcAltitude', 'altitude', -1);
+  setW('trcTime', 'time', -1);
+  setW('trcVz', 'vzStability');
+  setW('trcHeading', 'headingStability');
+  setW('trcPitch', 'pitchStability');
+  setW('trcSpeed', 'speedStability');
+  setW('trcCrash', 'crash', -1);
+  var elTotal = document.getElementById('trcTotal'); if (elTotal) elTotal.textContent = fmtW(totalEst);
+
+  setT('nodeLatest', lesson.latest || (lesson.status && lesson.status.indexOf('готов') !== -1 ? 'локально' : 'не найден'));
+  setT('nodeBest', lesson.best || (lesson.status && lesson.status.indexOf('готов') !== -1 ? 'не обучен' : 'не найден'));
+  setT('nodeSimReady', lesson.latest || lesson.best ? 'готов · ' + (lesson.best ? 'best' : 'latest') : 'нет чекпоинта');
+
+  var lrInp = document.getElementById('nodeLr');
+  if (lrInp) lrInp.value = String(lesson.ppo ? lesson.ppo.lr : 0.0001);
+
+  if (key !== lastInspectorKey) {
+    lastInspectorKey = key;
+    var epInp = document.getElementById('nodeEpisodesInput');
+    if (epInp) epInp.value = String(getLessonBatchEpisodes(lesson));
+  }
+
+  var w = lesson.weights || { progress:0.5, waypoint:1.0, precision:0, altitude:1.0, time:0.01, crash:5.0 };
+  document.querySelectorAll('#nodeWeights input[data-weight]').forEach(function(input) {
+    var val = w[input.dataset.weight];
+    if (val != null) { input.value = String(val); if (input.nextElementSibling) input.nextElementSibling.textContent = String(val); }
+  });
+
+  var busy = activeTrainingKey === key;
+  var startBtn = document.getElementById('btnStartNode');
+  var resumeBtn = document.getElementById('btnResumeNode');
+  var stopBtn = document.getElementById('btnStopNode');
+  var previewBtn = document.getElementById('btnPreviewNode');
+  if (startBtn) { startBtn.disabled = busy; startBtn.textContent = busy ? 'ОБУЧЕНИЕ' : 'Запуск RL ' + classLabel(p.clsId, p.branch, true); }
+  if (resumeBtn) resumeBtn.disabled = busy;
+  if (stopBtn) stopBtn.disabled = !busy;
+  if (previewBtn) previewBtn.disabled = false;
+
+  var chart = lesson.chart || {};
+  setSvgSpark('rewardSpark', chart.rewards);
+  setSvgSpark('deltaSpark', chart.deltas || chart.losses);
+}
+
+function updateProgress() {
+  var el = document.getElementById('progressContent');
+  if (!el) return;
+  try {
+    var total = 0, done = 0;
+    var sumPct = 0;
+    var keys = Object.keys(lessonData);
+    for (var i = 0; i < keys.length; i++) {
+      var l = lessonData[keys[i]];
+      if (!l) continue;
+      total++;
+      var p = l.metrics && l.metrics.progress != null ? Number(l.metrics.progress) : 0;
+      if (p > 0 || (l.status && l.status.indexOf('заверш') !== -1)) {
+        if (l.status && l.status.indexOf('заверш') !== -1) p = 1;
+        sumPct += p;
+        if (l.status && l.status.indexOf('заверш') !== -1) done++;
+      }
+    }
+    var avgPct = total > 0 ? Math.round(sumPct / total * 100) : 0;
+    var barColor = avgPct >= 100 ? '#5ba3e8' : avgPct > 0 ? '#5ba3e8' : '#555';
+    el.innerHTML = '<div class="prog-bar"><div class="prog-fill" style="width:' + avgPct + '%"></div></div>' +
+      '<div class="prog-text"><span style="color:#4ecb71">' + done + '</span> из <span style="color:#aaa">' + total + '</span> уроков завершено · <span style="float:right;color:#999">' + avgPct + '%</span></div>';
+  } catch(_) { el.innerHTML = '—'; }
+}
+
+function setSvgSpark(id, values) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = typeof values === 'string' ? values : renderSparkPath(values, { signed: id === 'deltaSpark' });
+}
+
+function renderSparkPath(values, options) {
+  options = options || {};
+  var series = Array.isArray(values) && values.length ? values : [0, 0];
+  var absMax = Math.max(1e-6);
+  series.forEach(function(v) { absMax = Math.max(absMax, Math.abs(Number(v) || 0)); });
+  var min = options.signed ? -absMax : Math.min.apply(null, series);
+  var max = options.signed ? absMax : Math.max.apply(null, series);
+  var span = Math.max(1e-6, max - min);
+  var points = series.map(function(value, index) {
+    var x = series.length === 1 ? 100 : (index / (series.length - 1)) * 100;
+    var y = 36 - ((value - min) / span) * 30;
+    return Math.round(x * 10) / 10 + ',' + Math.round(y * 10) / 10;
+  }).join(' ');
+  var zeroLine = options.signed ? '<line x1="0" y1="21" x2="100" y2="21" class="zero-line"></line>' : '';
+  return zeroLine + '<polyline points="' + points + '"></polyline>';
+}
+
+function formatMetric(v) { return Number.isFinite(Number(v)) ? Number(v).toFixed(3) : '-'; }
+function formatPercent(v) { return Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) + '%' : '-'; }
+
+// ═══════════════════════════════════════════════════════════════
+// FACULTY
+// ═══════════════════════════════════════════════════════════════
+var facultySelectedCls = null;
+
+function getClassCompletion(clsId) {
+  var cls = getClsById(clsId);
+  if (!cls) return { done:0, total:5 };
+  var branch = cls.mode === 'split' ? (activeBranch === 'all' ? 'drone' : activeBranch) : 'joint';
+  var count = 0;
+  for (var i = 0; i < 5; i++) {
+    var key = lessonKey(clsId, branch, i);
+    var lesson = getLessonData(key);
+    if (lesson && lesson.status && lesson.status.indexOf('заверш') !== -1) count++;
+  }
+  // Also check the other branch for split classes
+  if (cls.mode === 'split') {
+    var otherBranch = branch === 'drone' ? 'anti' : 'drone';
+    for (var i = 0; i < 5; i++) {
+      var key = lessonKey(clsId, otherBranch, i);
+      var lesson = getLessonData(key);
+      if (lesson && lesson.status && lesson.status.indexOf('заверш') !== -1) count++;
+    }
+  }
+  return { done: count, total: cls.mode === 'split' ? 10 : 5 };
+}
+
+function getTotalFacultyProgress() {
+  var totalAll = 0, doneAll = 0;
+  CLS_DATA.forEach(function(cls) {
+    var comp = getClassCompletion(cls.id);
+    totalAll += comp.total;
+    doneAll += comp.done;
+  });
+  return { done: doneAll, total: totalAll };
+}
+
+function renderFacultyView() {
+  var canvas = document.getElementById('lessonCanvas');
+  if (!canvas) return;
+  var prog = getTotalFacultyProgress();
+  var pct = prog.total > 0 ? Math.round(prog.done / prog.total * 100) : 0;
+
+  var html = '<div class="faculty-wrap">';
+  html += '<div class="faculty-prog"><div class="prog-bar"><div class="prog-fill" style="width:' + pct + '%"></div></div>' +
+    '<div class="faculty-prog-text">' + pct + '% · <span style="color:#4ecb71">' + prog.done + '</span> из <span style="color:#aaa">' + prog.total + '</span> уроков завершено</div></div>';
+
+  html += '<div class="faculty-grid">';
+  CLS_DATA.forEach(function(cls) {
+    var comp = getClassCompletion(cls.id);
+    var isSelected = facultySelectedCls && facultySelectedCls.id === cls.id;
+    var isCompleted = comp.done === comp.total;
+    var clsName = 'faculty-card' + (isSelected ? ' selected' : '') + (isCompleted ? ' completed' : '');
+    var barColor = isCompleted ? '#5ba3e8' : cls.color;
+    var pctClass = comp.total > 0 ? Math.round(comp.done / comp.total * 100) : 0;
+    var colorStyle = isSelected ? 'border-color:' + cls.color : '';
+    html += '<div class="' + clsName + '" data-cls-id="' + cls.id + '" style="' + colorStyle + '">' +
+      '<div class="fc-label" style="color:' + cls.color + '">' + classLabel(cls.id, activeBranch === 'all' ? 'drone' : activeBranch, true) + '</div>' +
+      '<div class="fc-name">' + cls.label + '</div>' +
+      '<div class="fc-bar"><span class="fc-bar-fill" style="width:' + pctClass + '%;background:' + barColor + '"></span></div>' +
+      '<div class="fc-info"><span class="done">' + comp.done + '</span>/' + comp.total + '</div>' +
+      '<button class="fc-btn" data-cls-id="' + cls.id + '"' + (activeTrainingKey ? ' disabled' : '') + '>▶ Запуск</button>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  // Show selected class lessons inline
+  if (facultySelectedCls) {
+    var cls = facultySelectedCls;
+    var branch = cls.mode === 'split' ? (activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti') : 'joint';
+    var titles = cls.mode === 'split' && branch === 'anti' ? cls.antiTitles : cls.titles;
+    html += '<div class="faculty-class-lessons"><div class="faculty-class-header">' +
+      '<h3 style="color:' + cls.color + '">' + classLabel(cls.id, branch, true) + ' · ' + cls.label + '</h3>' +
+      '<span style="font:500 10px/1.3 Rajdhani,sans-serif;color:#666">ветка: ' + branch + '</span></div>' +
+      '<div class="ls-row">';
+    for (var i = 0; i < 5; i++) {
+      var key = lessonKey(cls.id, branch, i);
+      var lesson = getLessonData(key) || { title: titles[i], status: 'готов к запуску', metrics: {} };
+      var isSelected = selectedKey === key;
+      var isTraining = activeTrainingKey === key;
+      var isCompleted = lesson.status && lesson.status.indexOf('заверш') !== -1;
+      var cn = 'ls-node' + (isSelected ? ' selected' : '') + (isTraining ? ' training' : '') + (isCompleted ? ' completed' : '');
+      var totalEpsL = getLessonDisplayTargetEpisodes(lesson, key);
+      var doneEpsL = getLessonDoneEpisodes(lesson);
+      var pctL = isCompleted ? 100 : Math.min(100, Math.round(doneEpsL / totalEpsL * 100));
+      var barC = isCompleted ? '#5ba3e8' : isTraining ? '#e8a830' : '#555';
+      var r = lesson.metrics && lesson.metrics.reward;
+      var d = lesson.metrics && lesson.metrics.delta;
+      html += '<div class="' + cn + '" data-key="' + key + '">' +
+        '<div class="ls-num">УРОК ' + (i + 1) + '</div>' +
+        '<div class="ls-title">' + lesson.title + '</div>' +
+        '<div class="ls-bar"><span class="ls-bar-fill" style="width:' + pctL + '%"></span><span class="ls-bar-text">' + doneEpsL + '/' + totalEpsL + '</span></div>' +
+        '<div class="ls-status">' + (lesson.status || '') + '</div>' +
+        (lesson.metrics && lesson.metrics._remaining ? '<div class="ls-remain">осталось ~' + lesson.metrics._remaining + 'с</div>' : '') +
+        '<div class="ls-metrics">' +
+        (r != null ? '<span class="good">R ' + Number(r).toFixed(2) + '</span>' : '') +
+        (d != null ? '<span>Δ ' + Number(d).toFixed(2) + '</span>' : '') +
+        (lesson.latest ? '<span class="warn"> ✓ cp</span>' : '') +
+        '</div></div>';
+      if (i < 4) {
+        var prevKey = lessonKey(cls.id, branch, i);
+        var prevData = getLessonData(prevKey);
+        var ready = prevData && prevData.status && prevData.status.indexOf('заверш') !== -1;
+        html += '<div class="ls-arrow' + (ready ? ' ready' : '') + '"></div>';
+      }
+    }
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  canvas.innerHTML = html;
+
+  // Bind card clicks
+  canvas.querySelectorAll('.faculty-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('.fc-btn')) return;
+      var clsId = Number(card.dataset.clsId);
+      var cls = getClsById(clsId);
+      if (!cls) return;
+      facultySelectedCls = cls;
+      selectedKey = null;
+      renderFacultyView();
+      clearInspector();
+    });
+  });
+
+  // Bind launch buttons
+  canvas.querySelectorAll('.fc-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var clsId = Number(btn.dataset.clsId);
+      if (activeTrainingKey) return;
+      selectClassForFaculty(clsId);
+    });
+  });
+
+  // Bind lesson nodes
+  canvas.querySelectorAll('.faculty-class-lessons .ls-node').forEach(function(node) {
+    node.addEventListener('click', function() {
+      selectedKey = node.dataset.key;
+      showToast('faculty lesson clicked: selectedKey=' + selectedKey);
+      renderFacultyView();
+      populateInspector(selectedKey);
+    });
+  });
+
+  renderBannerSchema();
+  updateProgress();
+}
+
+function selectClassForFaculty(clsId) {
+  var cls = getClsById(clsId);
+  if (!cls) return;
+  facultySelectedCls = cls;
+  var branch = cls.mode === 'split' ? (activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti') : 'joint';
+
+  // Build chain: collect all incomplete lessons + their prerequisites
+  var fullChain = [];
+  var visited = {};
+  function addWithPrereqs(key) {
+    if (!key || visited[key]) return;
+    visited[key] = true;
+    var parentKey = getParentLessonKey(key);
+    if (parentKey) addWithPrereqs(parentKey);
+    var lesson = getLessonData(key);
+    if (lesson && lesson.status && lesson.status.indexOf('заверш') !== -1) return;
+    var canResume = lesson && (lesson.best || lesson.latest);
+    fullChain.push({ key: key, resume: !!canResume });
+  }
+  for (var i = 0; i < 5; i++) {
+    var key = lessonKey(cls.id, branch, i);
+    addWithPrereqs(key);
+  }
+  if (fullChain.length === 0) return;
+
+  trainingChain = fullChain;
+  chainIndex = 0;
+  renderFacultyView();
+  clearInspector();
+  runNextInChain();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAINING API
+// ═══════════════════════════════════════════════════════════════
+function getParentLessonKey(key) {
+  var p = parseKey(key);
+  if (!p) return null;
+  if (p.idx > 0) return lessonKey(p.clsId, p.branch, p.idx - 1);
+  if (p.clsId > 1) {
+    var prevCls = getClsById(p.clsId - 1);
+    if (!prevCls) return null;
+    var prevBranch = prevCls.mode === 'split' ? p.branch : 'joint';
+    return lessonKey(p.clsId - 1, prevBranch, 4);
+  }
+  return null;
+}
+
+function getParentInfo(key) {
+  var parentKey = getParentLessonKey(key);
+  if (!parentKey) return [];
+  var parentData = getLessonData(parentKey);
+  if (!parentData || !parentData.best) return [];
+  var p = parseKey(parentKey);
+  return [{ nodeKey: parentKey, role: p.branch, best: parentData.best, latest: parentData.latest || null }];
+}
+
+async function startLessonTraining(resume) {
+  showToast('startLessonTraining(' + resume + ') mode=' + trainingMode);
+  if (activeTrainingKey) { showToast('  blocked: activeTrainingKey=' + activeTrainingKey); return; }
+  var key = selectedKey;
+  if (!key) { showToast('  blocked: selectedKey is null'); return; }
+  var lesson = getLessonData(key);
+  if (!lesson) { showToast('  blocked: no lessonData for key=' + key); return; }
+
+  // prerequisite check — нельзя перепрыгнуть через незавершённый урок
+  var parentKey = getParentLessonKey(key);
+  if (parentKey) {
+    var parentData = getLessonData(parentKey);
+    if (!parentData || !parentData.best) {
+      showToast('  blocked: предшествующий урок не завершён');
+      return;
+    }
+  }
+
+  // Авто-опт перед запуском (если включён тумблер и это не «Продолжить»):
+  // сначала подбираем веса, потом обычный запуск. autoOptimizeWeights работает
+  // по selectedKey (== key здесь), сам гоняет trial-обучения и по завершении
+  // применяет лучшие веса к уроку и сбрасывает его историю.
+  var chkAO = document.getElementById('chkAutoOptBeforeStart');
+  if (!resume && chkAO && chkAO.checked && !autoOptRunning) {
+    showToast('Авто-опт перед запуском ноды…');
+    await autoOptimizeWeights();
+    lesson = getLessonData(key) || lesson;
+    if (activeTrainingKey) { showToast('  прерывание: идёт другое обучение'); return; }
+  }
+
+  if (trainingMode === 'manual') {
+    trainingChain = getManualChain(key, resume);
+  } else {
+    trainingChain = getAutoChain(key, resume);
+  }
+  chainIndex = 0;
+  showToast('  chain built, len=' + trainingChain.length + ', starting runNextInChain');
+  runNextInChain();
+}
+
+function getManualChain(targetKey, resume) {
+  return [{ key: targetKey, resume: resume }];
+}
+
+function getAutoChain(targetKey, resume) {
+  var chain = [];
+  var p = parseKey(targetKey);
+  if (!p) return [{ key: targetKey, resume: resume }];
+
+  // backward: uncompleted ancestors
+  var visited = {};
+  function visit(key) {
+    if (!key || visited[key]) return;
+    visited[key] = true;
+    var parentKey = getParentLessonKey(key);
+    if (parentKey) visit(parentKey);
+    var lesson = getLessonData(key);
+    if (lesson && key !== targetKey && !lesson.best) {
+      chain.push({ key: key, resume: false });
+    }
+  }
+  visit(targetKey);
+  chain.push({ key: targetKey, resume: resume });
+
+  // forward: lessons after target up to Урок-5 (index 4)
+  for (var i = p.idx + 1; i <= 4; i++) {
+    chain.push({ key: lessonKey(p.clsId, p.branch, i), resume: false });
+  }
+
+  // cross-class: all 5 lessons of classes up to Класс-4
+  var maxClsId = Math.min(4, CLS_DATA[CLS_DATA.length - 1].id);
+  for (var c = p.clsId + 1; c <= maxClsId; c++) {
+    var nextCls = getClsById(c);
+    if (!nextCls) continue;
+    var nextBranch = nextCls.mode === 'split' ? p.branch : 'joint';
+    for (var i = 0; i <= 4; i++) {
+      chain.push({ key: lessonKey(c, nextBranch, i), resume: false });
+    }
+  }
+  return chain;
+}
+
+async function runNextInChain() {
+  if (chainIndex >= trainingChain.length) {
+    showToast('  runNextInChain: chain complete');
+    trainingChain = []; chainIndex = 0;
+    if (selectedKey) populateInspector(selectedKey);
+    renderCanvas(); saveState();
+    return;
+  }
+  var item = trainingChain[chainIndex];
+  chainIndex++;
+  var key = item.key, resume = item.resume;
+  if (!resume) delete convergeRetries[key];
+  var lesson = getLessonData(key);
+  if (!lesson) {
+    lesson = { status: 'готов к запуску', metrics: {} };
+    lessonData[key] = lesson;
+    showToast('  runNextInChain: init lesson ' + key);
+  }
+
+  // skip already-completed lessons in auto chain (forward section)
+  if (trainingMode === 'auto' && lesson.best && chainIndex <= trainingChain.length) {
+    showToast('  runNextInChain: skip completed ' + key);
+    runNextInChain(); return;
+  }
+
+  // auto-follow selectedKey so visual highlight tracks the chain
+  if (selectedKey !== key && trainingMode === 'auto') {
+    selectedKey = key;
+  }
+
+  // switch class tab if needed (cross-class chain)
+  var p = parseKey(key);
+  if (!p) { p = { clsId: 0, branch: 'drone', idx: 0 }; }
+  if (currentTab !== p.clsId - 1 || p.branch !== activeBranch) {
+    currentTab = p.clsId - 1;
+    activeBranch = p.branch;
+    renderTabs();
+  }
+  var chainLabel = trainingChain.length > 1 ? ' (' + chainIndex + '/' + trainingChain.length + ')' : '';
+  lesson.status = resume ? 'продолжение...' + chainLabel : 'запуск RL' + chainLabel;
+  showToast('  runNextInChain: status=' + lesson.status + ' key=' + key);
+  lesson.metrics = lesson.metrics || {};
+  lesson.metrics._startTime = Date.now();
+  activeTrainingKey = key;
+  var s = document.getElementById('btnStartNode'); if (s) { s.textContent = 'ОБУЧЕНИЕ'; s.disabled = true; s.classList.add('training-active'); }
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas(); saveState();
+
+  try {
+    var trainConfig = { ...(lesson.train || {}), episodes: getLessonRunEpisodes(lesson, key, resume) };
+    var body = {
+      node: { key: key, role: p.branch, classId: p.clsId, lessonIdx: p.idx, ppo: lesson.ppo, train: trainConfig, weights: lesson.weights },
+      resume: resume,
+      inputFrom: getParentInfo(key),
+      description: lesson.desc || '',
+    };
+    var response = await fetch(TRAINING_API + '/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var job = await response.json();
+    activeJobId = job.id;
+    applyJobUpdate(key, job);
+    syncTrainingState(lesson);
+    trainingTimer = setInterval(function() { pollTrainingJob(key); }, 500);
+  } catch (e) {
+    showToast('  fetch error: ' + e.message);
+    lesson.status = 'сервер недоступен';
+    activeTrainingKey = null; activeJobId = null;
+    trainingChain = []; chainIndex = 0;
+    if (selectedKey === key) populateInspector(key);
+    renderCanvas(); saveState();
+  }
+}
+
+async function stopLessonTraining() {
+  var key = activeTrainingKey;
+  trainingChain = []; chainIndex = 0;
+  if (!key) return;
+  if (activeJobId) {
+    try { await fetch(TRAINING_API + '/jobs/' + activeJobId + '/stop', { method: 'POST' }); } catch (_) {}
+  }
+  var lesson = getLessonData(key);
+  if (lesson && !lesson.status.includes('заверш')) lesson.status = 'остановлено';
+  stopTrainingTimer();
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas(); saveState();
+}
+
+function autoTuneWeightsAfterFail(key) {
+  var lesson = getLessonData(key);
+  if (!lesson) return false;
+  var idx = lesson.weightProfileIdx || 0;
+  if (idx >= WEIGHT_PROFILES.length - 1) {
+    showToast('  вес: все профили исчерпаны (' + WEIGHT_PROFILES.length + ')');
+    return false;
+  }
+  idx++;
+  lesson.weightProfileIdx = idx;
+  lesson.weights = { ...WEIGHT_PROFILES[idx] };
+  lesson.completed = 0;
+  lesson.totalEpisodes = 0;
+  lesson.resumeFrom = 0;
+  lesson.latest = null;
+  lesson.best = null;
+  lesson.chart = { rewards: [], deltas: [], losses: [] };
+  lesson.metrics = {};
+  lesson.status = 'готов к запуску';
+  delete lesson.convergeEpisodes;
+  setLessonData(key, lesson);
+  showToast('  вес: профиль ' + (idx + 1) + '/' + WEIGHT_PROFILES.length + ' (wp=' + lesson.weights.waypoint.toFixed(1) + ' cr=' + lesson.weights.crash.toFixed(0) + ')');
+  trainingChain.splice(chainIndex, 0, { key: key, resume: false });
+  return true;
+}
+
+function stopTrainingTimer(wasCompleted) {
+  if (trainingTimer) clearInterval(trainingTimer);
+  trainingTimer = null;
+  var completedKey = activeTrainingKey;
+  activeTrainingKey = null;
+  activeJobId = null;
+  var s = document.getElementById('btnStartNode'); if (s) { s.textContent = 'Запуск RL'; s.disabled = false; s.classList.remove('training-active'); }
+
+  // Сразу снять золотую рамку, чтобы не висела после pollTrainingJob
+  syncTrainingState(null);
+  renderCanvas(); saveState();
+
+  // Auto-converge: если не сошлось — добавить доп. запись в цепь
+  if (wasCompleted && completedKey) {
+    var lesson = getLessonData(completedKey);
+    if (lesson && !isLessonConverged(lesson.chart)) {
+      var totalDone = getLessonDoneEpisodes(lesson);
+      var hardLimit = getLessonAutoConvergeLimit(lesson);
+      if (totalDone >= hardLimit) {
+        delete convergeRetries[completedKey];
+        lesson.convergeEpisodes = totalDone;
+        setLessonData(completedKey, lesson);
+        syncPreviewNode(completedKey);
+        showToast('  лимит добучения достигнут (' + totalDone + '/' + hardLimit + ' эп.)');
+        if (completedKey === selectedKey) populateInspector(completedKey);
+      } else {
+        var retries = convergeRetries[completedKey] || 0;
+        if (retries < MAX_CONVERGE_RETRIES) {
+          convergeRetries[completedKey] = retries + 1;
+          showToast('  не сошлось — доп эпизоды (' + (retries + 1) + '/' + MAX_CONVERGE_RETRIES + ')');
+          trainingChain.splice(chainIndex, 0, { key: completedKey, resume: true });
+          if (completedKey === selectedKey) populateInspector(completedKey);
+        } else {
+          delete convergeRetries[completedKey];
+          lesson.convergeEpisodes = lesson.totalEpisodes || lesson.completed || 0;
+          setLessonData(completedKey, lesson);
+          syncPreviewNode(completedKey);
+          showToast('  попытки исчерпаны (' + lesson.convergeEpisodes + ' эп.)');
+          if (completedKey === selectedKey) populateInspector(completedKey);
+        }
+      }
+    } else if (lesson) {
+      lesson.convergeEpisodes = lesson.totalEpisodes || lesson.completed || 0;
+      setLessonData(completedKey, lesson);
+      delete convergeRetries[completedKey];
+      showToast('  сошлось за ' + lesson.convergeEpisodes + ' эп.');
+    }
+  }
+
+  if (chainIndex < trainingChain.length) {
+    // Дать время на синхронизацию данных урока перед переходом к следующему в цепи
+    // (иначе может быть проскакивание уроков из-за race condition)
+    setTimeout(runNextInChain, 300);
+  } else {
+    onChainComplete();
+  }
+}
+
+function onChainComplete() {
+  var wasFaculty = currentTab >= CLS_DATA.length && facultySelectedCls;
+  trainingChain = []; chainIndex = 0;
+  if (wasFaculty) {
+    if (selectedKey) populateInspector(selectedKey);
+    renderFacultyView();
+  } else {
+    if (selectedKey) populateInspector(selectedKey);
+    renderCanvas();
+  }
+  saveState();
+}
+
+async function pollTrainingJob(key) {
+  if (!activeJobId) return;
+  var myJobId = activeJobId;
+  try {
+    var response = await fetch(TRAINING_API + '/jobs/' + myJobId);
+    if (response.status === 404) {
+      if (activeJobId !== myJobId) return;
+      showToast('  сервер перезапущен — старый job не найден');
+      activeJobId = null;
+      activeTrainingKey = null;
+      syncTrainingState(null);
+      clearInterval(trainingTimer);
+      trainingTimer = null;
+      var lostLesson = getLessonData(key);
+      if (lostLesson) {
+        lostLesson.status = 'готов к запуску';
+        populateInspector(key);
+        renderCanvas();
+        saveState();
+      }
+      updateTrainingStatusBar();
+      return;
+    }
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var job = await response.json();
+    if (activeJobId !== myJobId) return;
+    applyJobUpdate(key, job);
+    if (job.status === 'completed' || job.status === 'stopped') stopTrainingTimer(job.status === 'completed');
+  } catch (error) {
+    if (activeJobId !== myJobId) return;
+    if (error.message.startsWith('HTTP ')) {
+      var lesson = getLessonData(key);
+      if (lesson) { lesson.status = 'ошибка сервера'; populateInspector(key); renderCanvas(); saveState(); }
+    }
+  }
+}
+
+function syncPreviewNode(key) {
+  if (isAutoOptTrialKey(key)) return;
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  if (!lesson.latest && !lesson.best) return;
+  var p = parseKey(key);
+  if (!p) return;
+  var payload = {
+    version: 1, nodeKey: key, title: lesson.title || 'Урок ' + key,
+    classId: p.clsId, role: p.branch,
+    policyMode: 'checkpoint',
+    checkpointType: lesson.best ? 'best' : 'latest',
+    latest: lesson.latest || null, best: lesson.best || null,
+    lastRoute: lesson.lastRoute || null,
+    episodes: getLessonDisplayTargetEpisodes(lesson, key),
+  };
+  try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(payload)); } catch (_) {}
+}
+
+function applyJobUpdate(key, job) {
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  var pct = Math.round((job.progress || 0) * 100);
+  var resumeFrom = job.resumeFrom || 0;
+  lesson.status = job.status === 'completed' ? 'завершено (' + (job.totalEpisodes || job.completed) + ' эп. всего)'
+    : job.status === 'stopped' ? 'остановлено (' + (job.totalEpisodes || job.completed) + ' эп. всего)'
+    : resumeFrom > 0 ? 'продолжение с эп. ' + resumeFrom + ' — ' + pct + '%'
+    : 'обучается ' + pct + '%';
+  if (autoOptRunning) lesson.status = 'авто-опт ' + autoOptTrialNum + '/' + autoOptTotalTrials + ' · ' + lesson.status;
+  lesson.metrics = {
+    reward: job.reward, bestReward: job.bestReward, delta: job.delta,
+    baselineReward: job.baselineReward, loss: job.loss,
+    emaReward: job.emaReward, emaDelta: job.emaDelta, bestScore: job.bestScore, progress: job.progress,
+    eval: job.eval || null, evalArrivedRate: job.evalArrivedRate, evalMeanReward: job.evalMeanReward,
+  };
+  lesson.chart = lesson.chart || { rewards: [], deltas: [], losses: [] };
+  if (Array.isArray(job.rewards)) lesson.chart.rewards = job.rewards;
+  if (Array.isArray(job.deltas)) lesson.chart.deltas = job.deltas;
+  if (Array.isArray(job.losses)) lesson.chart.losses = job.losses;
+  if (Array.isArray(job.evals)) lesson.chart.evals = job.evals;
+  if (Array.isArray(job.rewardComponents)) lesson.chart.rewardComponents = job.rewardComponents;
+  lesson.completed = job.completed;
+  lesson.resumeFrom = job.resumeFrom || 0;
+  lesson.totalEpisodes = job.totalEpisodes || job.completed;
+  lesson.latest = job.artifacts && job.artifacts.latest ? job.artifacts.latest : (lesson.latest || null);
+  lesson.best = job.artifacts && job.artifacts.best ? job.artifacts.best : (lesson.best || null);
+  lesson.lastRoute = job.lastRoute || lesson.lastRoute || null;
+  setLessonData(key, lesson);
+  syncTrainingState(lesson);
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas();
+  saveState();
+  syncPreviewNode(key);
+}
+
+async function resetLesson(key) {
+  key = key || selectedKey;
+  if (!key || activeTrainingKey === key) return;
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  try {
+    await fetch(TRAINING_API + '/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: key, role: key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone' }),
+    });
+  } catch (_) {}
+  lesson.metrics = {}; lesson.completed = 0; lesson.totalEpisodes = 0;
+  lesson.resumeFrom = 0; lesson.latest = null; lesson.best = null;
+  delete convergeRetries[key];
+  delete lesson.convergeEpisodes;
+  delete lesson.weightProfileIdx;
+  lesson.status = 'готов к запуску';
+  lesson.chart = { rewards: [], deltas: [], losses: [] };
+  setLessonData(key, lesson);
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas(); saveState();
+}
+
+function getPreviewCheckpoint(lesson) {
+  // Выбрать лучший доступный чекпоинт: best > latest
+  if (lesson.best) return { path: lesson.best, type: 'best' };
+  if (lesson.latest) return { path: lesson.latest, type: 'latest' };
+  return { path: null, type: null };
+}
+
+function openLessonPreview() {
+  var key = selectedKey;
+  if (!key) return;
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  var cp = getPreviewCheckpoint(lesson);
+  if (!cp.path) { showToast('Нет сохранённого чекпоинта — сначала обучите урок'); return; }
+  var p = parseKey(key);
+  var payload = {
+    version: 1, nodeKey: key, title: lesson.title || 'Урок ' + key,
+    classId: p.clsId, role: p.branch,
+    policyMode: 'checkpoint',
+    checkpointType: cp.type, latest: lesson.latest || null, best: lesson.best || null,
+    lastRoute: lesson.lastRoute || null,
+    episodes: getLessonDisplayTargetEpisodes(lesson, selectedKey),
+  };
+  try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(payload)); } catch (_) {}
+  window.open('Split-view.html?previewNode=1', 'polygon3d-preview-' + Date.now());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEMPLATES
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+console.log('training.html INIT starting');
+loadState();
+
+// Init lessonData for all classes
+CLS_DATA.forEach(function(cls) {
+  var branches = cls.mode === 'split' ? ['drone','anti'] : ['joint'];
+  branches.forEach(function(b) {
+    var titles = cls.mode === 'split' && b === 'anti' ? cls.antiTitles : cls.titles;
+    for (var i = 0; i < 5; i++) {
+      var key = lessonKey(cls.id, b, i);
+      if (!getLessonData(key)) {
+        setLessonData(key, { title: titles[i], ppo: { lr: 0.0001 }, train: { episodes: 20 }, weights: { progress:0.5, waypoint:1.0, precision:0, altitude:1.0, time:0.01, crash:5.0, vzStability:1.0, headingStability:0.05, pitchStability:0.05, speedStability:0.05 }, metrics: {}, status: 'готов к запуску', completed: 0, resumeFrom: 0, totalEpisodes: 0, latest: null, best: null, chart: { rewards: [], deltas: [], losses: [] } });
+      } else {
+        var existing = getLessonData(key);
+        if (!existing.title) existing.title = titles[i];
+        setLessonData(key, existing);
+      }
+    }
+  });
+});
+
+renderTabs();
+renderCanvas();
+clearInspector();
+populateInspector(selectedKey);
+updateProgress();
+
+// Branch buttons
+// Render C1-C10 banner
+function renderBannerSchema() {
+  var el = document.getElementById('bannerSchema');
+  if (!el) return;
+  var BW = 1200, BH = 100, cw = 72, ch = 28, gap = 14;
+  var startX = (BW - (10 * (cw + gap) - gap)) / 2;
+  var pathY = 14;
+  var labels = ['Только цель','Инерция','Обзор','2.5D','Противник','Адаптивность','ПВО','Рой','Ресурсы','Сценарий'];
+  var svg = '<svg class="schema-svg" viewBox="0 0 ' + BW + ' ' + BH + '" xmlns="http://www.w3.org/2000/svg"><defs>' +
+    '<marker id="bArrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#4ecb71"/></marker>' +
+    '<marker id="bArrowO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#e8a830"/></marker>' +
+    '<marker id="bArrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#5ba3e8"/></marker></defs>' +
+    '<rect x="0" y="0" width="' + BW + '" height="' + BH + '" fill="transparent"/>' +
+    '<rect x="8" y="4" width="' + (BW - 16) + '" height="' + (BH - 8) + '" rx="6" ry="6" fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>' +
+    '<text x="' + (startX - 43) + '" y="' + (pathY - 6 + ch/2 + 4) + '" text-anchor="end" font-size="11" font-weight="600" font-family="Rajdhani,sans-serif" fill="#e8a830">ДРОН</text>' +
+    '<text x="' + (startX - 43) + '" y="' + (pathY + 40 + ch/2 + 4) + '" text-anchor="end" font-size="11" font-weight="600" font-family="Rajdhani,sans-serif" fill="#5ba3e8">АНТИДРОН</text>';
+  var jointShift = 76;
+  for (var i = 0; i < 10; i++) {
+    var x = startX + i * (cw + gap);
+    if (i >= 4) x += jointShift;
+    var cls = getClsById(i + 1);
+    var comp = cls ? getClassCompletion(cls.id) : { done: 0, total: 5 };
+    var isComplete = comp.done === comp.total;
+    var isActive = currentTab === i;
+    var isFaculty = currentTab >= CLS_DATA.length;
+    if (i < 4) {
+      var dY = pathY - 6, aY = pathY + 40;
+      var dActive = isActive && activeBranch !== 'anti';
+      var aActive = isActive && activeBranch === 'anti';
+      var dComp = getClassCompletion(i + 1);
+      var dFill = isComplete ? '#4ecb71' : (dActive && !isFaculty ? '#e8a830' : 'rgba(232,168,48,0.12)');
+      var dStroke = isComplete ? '#4ecb71' : (dActive && !isFaculty ? '#e8a830' : 'rgba(232,168,48,0.3)');
+      var dW = (dActive && !isFaculty) || isComplete ? 2.5 : 1;
+      var dText = isComplete ? '#fff' : (dActive && !isFaculty ? '#fff' : '#e8a830');
+      var dLabel = classLabel(i + 1, 'drone', false);
+      svg += '<rect x="' + x + '" y="' + dY + '" width="' + cw + '" height="' + ch + '" rx="4" ry="4" fill="' + dFill + '" stroke="' + dStroke + '" stroke-width="' + dW + '"/><text x="' + (x + cw / 2) + '" y="' + (dY + ch / 2 + 4) + '" text-anchor="middle" font-size="11" font-weight="600" font-family="SF Mono,monospace" fill="' + dText + '">' + dLabel + '</text>';
+      var aFill = isComplete ? '#4ecb71' : (aActive && !isFaculty ? '#5ba3e8' : 'rgba(91,163,232,0.12)');
+      var aStroke = isComplete ? '#4ecb71' : (aActive && !isFaculty ? '#5ba3e8' : 'rgba(91,163,232,0.3)');
+      var aW = (aActive && !isFaculty) || isComplete ? 2.5 : 1;
+      var aText = isComplete ? '#fff' : (aActive && !isFaculty ? '#fff' : '#5ba3e8');
+      var aLabel = classLabel(i + 1, 'anti', false);
+      svg += '<rect x="' + x + '" y="' + aY + '" width="' + cw + '" height="' + ch + '" rx="4" ry="4" fill="' + aFill + '" stroke="' + aStroke + '" stroke-width="' + aW + '"/><text x="' + (x + cw / 2) + '" y="' + (aY + ch / 2 + 4) + '" text-anchor="middle" font-size="11" font-weight="600" font-family="SF Mono,monospace" fill="' + aText + '">' + aLabel + '</text>';
+      if (i > 0) {
+        svg += '<line x1="' + (startX + (i-1)*(cw+gap)+cw) + '" y1="' + (dY+ch/2) + '" x2="' + (x-2) + '" y2="' + (dY+ch/2) + '" stroke="#e8a830" stroke-width="1.5" marker-end="url(#bArrowO)"/>';
+        svg += '<line x1="' + (startX + (i-1)*(cw+gap)+cw) + '" y1="' + (aY+ch/2) + '" x2="' + (x-2) + '" y2="' + (aY+ch/2) + '" stroke="#5ba3e8" stroke-width="1.5" marker-end="url(#bArrowB)"/>';
+      }
+    } else {
+      var jFill = isComplete ? '#4ecb71' : (isActive && !isFaculty ? '#4ecb71' : 'rgba(78,203,113,0.15)');
+      var jStroke = isComplete ? '#4ecb71' : (isActive && !isFaculty ? '#4ecb71' : 'rgba(78,203,113,0.3)');
+      var jW = (isActive && !isFaculty) || isComplete ? 2.5 : 1;
+      var jText = isComplete || (isActive && !isFaculty) ? '#fff' : '#4ecb71';
+      svg += '<rect x="' + x + '" y="' + (pathY+10) + '" width="' + cw + '" height="' + ch + '" rx="4" ry="4" fill="' + jFill + '" stroke="' + jStroke + '" stroke-width="' + jW + '"/><text x="' + (x + cw/2) + '" y="' + (pathY+10+ch/2+4) + '" text-anchor="middle" font-size="11" font-weight="600" font-family="SF Mono,monospace" fill="' + jText + '">C' + (i+1) + '</text>';
+      if (i > 4) svg += '<line x1="' + (startX + (i-1)*(cw+gap)+cw + jointShift) + '" y1="' + (pathY+10+ch/2) + '" x2="' + (x-2) + '" y2="' + (pathY+10+ch/2) + '" stroke="#4ecb71" stroke-width="1.5" marker-end="url(#bArrowG)"/>';
+    }
+    svg += '<text x="' + (x+cw/2) + '" y="' + (pathY+40+ch+10) + '" text-anchor="middle" font-size="7" fill="#555" font-family="SF Mono,monospace">' + labels[i] + '</text>';
+  }
+  var mx = startX + 4*(cw+gap) + jointShift, me = startX + 3*(cw+gap)+cw;
+  svg += '<line x1="' + me + '" y1="' + (pathY-6+ch/2) + '" x2="' + (mx-gap/2) + '" y2="' + (pathY+10+ch/2) + '" stroke="#e8a830" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bArrowO)"/>';
+  svg += '<line x1="' + me + '" y1="' + (pathY+40+ch/2) + '" x2="' + (mx-gap/2) + '" y2="' + (pathY+10+ch/2) + '" stroke="#5ba3e8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bArrowB)"/>';
+  svg += '</svg>';
+  el.innerHTML = svg;
+}
+renderBannerSchema();
+
+// Save weight slider changes
+document.querySelectorAll('#nodeWeights input[data-weight]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    if (!selectedKey) return;
+    var lesson = getLessonData(selectedKey);
+    if (!lesson) return;
+    if (!lesson.weights) lesson.weights = {};
+    lesson.weights[this.dataset.weight] = Number(this.value);
+    if (this.nextElementSibling) this.nextElementSibling.textContent = String(this.value);
+    setLessonData(selectedKey, lesson);
+    saveState();
+  });
+});
+
+document.getElementById('btnResetWeights')?.addEventListener('click', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  var def = lesson.templateWeights || { progress:0.5, waypoint:1.0, precision:0, altitude:1.0, time:0.01, crash:5.0, vzStability:1.5, headingStability:1.5, pitchStability:1.5, speedStability:3.0 };
+  lesson.weights = { ...def };
+  setLessonData(selectedKey, lesson);
+  saveState();
+  populateInspector(selectedKey);
+});
+
+// Weight tooltips
+document.querySelectorAll('#nodeWeights label[data-tip]').forEach(function(label) {
+  label.addEventListener('mouseenter', function() {
+    var tip = document.getElementById('weightTooltip');
+    if (tip) { tip.textContent = label.dataset.tip; tip.style.display = 'block'; }
+  });
+  label.addEventListener('mouseleave', function() {
+    var tip = document.getElementById('weightTooltip');
+    if (tip) tip.style.display = 'none';
+  });
+  label.addEventListener('mousemove', function(e) {
+    var tip = document.getElementById('weightTooltip');
+    if (tip) { tip.style.left = e.pageX + 12 + 'px'; tip.style.top = e.pageY - 8 + 'px'; }
+  });
+});
+
+// Mode switch
+document.getElementById('modeBtnManual').addEventListener('click', function() {
+  trainingMode = trainingMode === 'auto' ? 'manual' : 'auto';
+  showToast('режим: ' + trainingMode);
+  renderCanvas();
+  saveState();
+});
+
+// Visual debug toast
+function showToast(msg) {
+  var t = document.getElementById('debugToast');
+  if (!t) { t = document.createElement('div'); t.id = 'debugToast'; t.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;z-index:9999;background:#222;color:#4ecb71;padding:10px 14px;border-radius:6px;font:500 11px/1.3 Rajdhani,sans-serif;border:1px solid #4ecb71;max-width:400px;pointer-events:none'; document.body.appendChild(t); }
+  t.textContent = new Date().toLocaleTimeString() + ' → ' + msg; t.style.display = 'block';
+  clearTimeout(t._hide); t._hide = setTimeout(function() { t.style.display = 'none'; }, 8000);
+}
+
+// Main action buttons
+document.getElementById('btnStartNode').addEventListener('click', function() { showToast('btnStartNode clicked, selectedKey=' + selectedKey); startLessonTraining(false); });
+document.getElementById('btnResumeNode').addEventListener('click', function() { showToast('btnResumeNode clicked'); startLessonTraining(true); });
+document.getElementById('btnStopNode').addEventListener('click', stopLessonTraining);
+document.getElementById('btnResetNode')?.addEventListener('click', function() {
+  if (!selectedKey) { showToast('выберите урок'); return; }
+  if (activeTrainingKey === selectedKey) { showToast('идёт обучение — сначала Стоп'); return; }
+  if (!confirm('Сбросить историю обучения и чекпоинт урока? Веса/параметры останутся.')) return;
+  resetLesson(selectedKey);
+  showToast('сброшено: ' + selectedKey);
+});
+document.getElementById('btnPreviewNode').addEventListener('click', openLessonPreview);
+console.log('training.html INIT complete, buttons bound');
+
+// Auto-optimize weights
+var autoOptRunning = false;
+var autoOptTrialNum = 0;
+var autoOptTotalTrials = 0;
+
+function isAutoOptTrialKey(key) {
+  return typeof key === 'string' && key.indexOf('__autoopt_') !== -1;
+}
+
+function autoOptTrialKey(baseKey, trialNum) {
+  return baseKey + '__autoopt_' + Date.now().toString(36) + '_' + trialNum;
+}
+
+function cloneLessonForTrial(source, weights, episodes) {
+  return {
+    ...source,
+    weights: { ...weights },
+    ppo: { ...(source.ppo || {}) },
+    train: { ...(source.train || {}), episodes: episodes },
+    completed: 0,
+    totalEpisodes: 0,
+    resumeFrom: 0,
+    latest: null,
+    best: null,
+    lastRoute: null,
+    metrics: {},
+    chart: { rewards: [], deltas: [], losses: [], evals: [] },
+    status: 'auto-opt trial',
+  };
+}
+
+function autoOptScore(lesson) {
+  var m = lesson && lesson.metrics ? lesson.metrics : {};
+  if (Number.isFinite(Number(m.bestScore))) return Number(m.bestScore);
+  if (Number.isFinite(Number(m.evalArrivedRate)) && Number.isFinite(Number(m.evalMeanReward))) {
+    return Number(m.evalArrivedRate) * 100 + Number(m.evalMeanReward);
+  }
+  if (Number.isFinite(Number(m.emaReward))) return Number(m.emaReward);
+  if (Number.isFinite(Number(m.bestReward))) return Number(m.bestReward);
+  if (Number.isFinite(Number(m.reward))) return Number(m.reward);
+  return -Infinity;
+}
+
+function sameWeights(a, b) {
+  var keys = Object.keys({ ...(a || {}), ...(b || {}) }).sort();
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (Number(a?.[k] ?? 0) !== Number(b?.[k] ?? 0)) return false;
+  }
+  return true;
+}
+
+async function cleanupAutoOptTrial(key, role) {
+  if (!key) return;
+  try {
+    await fetch(TRAINING_API + '/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: key, role: role || 'drone' }),
+    });
+  } catch (_) {}
+  delete lessonData[key];
+}
+
+async function runTrialWeights(key, weights, episodes) {
+  if (!key || !weights) return 0;
+  var sourceLesson = getLessonData(key);
+  if (!sourceLesson) return 0;
+  var trialKey = autoOptTrialKey(key, autoOptTrialNum);
+  var p = parseKey(key) || { branch: 'drone' };
+  setLessonData(trialKey, cloneLessonForTrial(sourceLesson, weights, episodes));
+
+  var savedRetries = MAX_CONVERGE_RETRIES;
+  var savedMode = trainingMode;
+  MAX_CONVERGE_RETRIES = 0;
+  trainingMode = 'manual';
+  trainingChain = [{ key: trialKey, resume: false }];
+  chainIndex = 0;
+  runNextInChain();
+  await new Promise(function(r) { setTimeout(r, 1000); });
+
+  var maxWait = Math.max(120, episodes * 30);
+  while ((activeTrainingKey || trainingChain.length > 0) && maxWait > 0) {
+    await new Promise(function(r) { setTimeout(r, 500); });
+    maxWait--;
+  }
+
+  if (activeTrainingKey === trialKey && activeJobId) {
+    try { await fetch(TRAINING_API + '/jobs/' + activeJobId + '/stop', { method: 'POST' }); } catch (_) {}
+  }
+
+  MAX_CONVERGE_RETRIES = savedRetries;
+  trainingMode = savedMode;
+  var trialLesson = getLessonData(trialKey);
+  var score = autoOptScore(trialLesson);
+  await cleanupAutoOptTrial(trialKey, p.branch);
+  if (autoOptRunning) {
+    var lesson = getLessonData(key);
+    if (lesson) {
+      lesson.status = 'авто-опт ' + autoOptTrialNum + '/' + autoOptTotalTrials + ' ✓';
+      setLessonData(key, lesson);
+    }
+    renderCanvas();
+  }
+  return Number.isFinite(score) ? score : 0;
+}
+
+async function autoOptimizeWeights() {
+  if (autoOptRunning) { showToast('уже работает'); return; }
+  console.log('autoOptimizeWeights START');
+  autoOptRunning = true;
+  var key = selectedKey;
+  if (!key) { showToast('выберите урок'); autoOptRunning = false; return; }
+  var lesson = getLessonData(key);
+  if (!lesson) { autoOptRunning = false; return; }
+
+  var origWeights = { ...(lesson.weights || {}) };
+  var bestWeights = { ...origWeights };
+  // Только веса, реально двигающие счёт. Стабилизаторы (vz/heading/pitch/speed),
+  // altitude и time почти не влияют на результат — исключены ради скорости подбора.
+  var weightKeys = ['progress','waypoint','precision','crash'];
+  var bestReward = -Infinity;
+  var rounds = 2;
+  var trialEps = 10;
+  var totalTrials = rounds * (1 + weightKeys.length * 2);
+  autoOptTotalTrials = totalTrials;
+  var trialNum = 0;
+  function updateTrial(n) { trialNum = n; autoOptTrialNum = n; }
+
+  var statusEl = document.getElementById('autoOptStatus');
+  var cycleEl = document.getElementById('autoOptCycle');
+  if (statusEl) statusEl.style.display = 'flex';
+
+  showToast('Авто-опт: старт, ' + rounds + ' раунда × ' + weightKeys.length + ' весов');
+
+  for (var r = 0; r < rounds; r++) {
+    updateTrial(trialNum + 1);
+  var btn = document.getElementById('btnAutoOpt');
+  if (btn) btn.textContent = 'Опт ' + trialNum + '/' + totalTrials;
+  if (cycleEl) cycleEl.textContent = trialNum + '/' + totalTrials + ' · baseline';
+    showToast('Раунд ' + (r+1) + '/' + rounds + ': baseline...');
+    var baseReward = await runTrialWeights(key, bestWeights, trialEps);
+    if (baseReward > bestReward) bestReward = baseReward;
+    showToast('  baseline награда: ' + Number(baseReward).toFixed(3));
+
+    var improved = false;
+    var trialWeightsObj = { ...bestWeights };
+
+    for (var k = 0; k < weightKeys.length; k++) {
+      var wk = weightKeys[k];
+      var orig = Number(bestWeights[wk] || 0);
+      if (orig === 0 && wk !== 'crash' && wk !== 'time') continue;
+
+      var step = orig > 0 ? orig * 0.3 : 0.1;
+      if (wk === 'time' || wk === 'crash') step = Math.max(step, 0.5);
+
+      // +step
+      updateTrial(trialNum + 1);
+      var btn = document.getElementById('btnAutoOpt');
+      if (btn) btn.textContent = wk + '+' + trialNum + '/' + totalTrials;
+      if (cycleEl) cycleEl.textContent = trialNum + '/' + totalTrials + ' · ' + wk + ' +';
+      showToast('  ' + wk + ' +' + step.toFixed(3) + '...');
+      var plusW = { ...trialWeightsObj, [wk]: Math.max(0, Number((orig + step).toFixed(3))) };
+      var rPlus = await runTrialWeights(key, plusW, trialEps);
+      showToast('    r=' + Number(rPlus).toFixed(3));
+
+      // early-accept: если +step уже улучшил — принимаем и не тратим прогон на -step
+      if (rPlus > bestReward) {
+        trialWeightsObj[wk] = Math.max(0, Number((orig + step).toFixed(3)));
+        bestReward = rPlus;
+        improved = true;
+        showToast('  → ' + wk + ' = ' + trialWeightsObj[wk]);
+        continue;
+      }
+
+      // -step (только если +step не помог и вес можно уменьшать)
+      if (orig > 0) {
+        updateTrial(trialNum + 1);
+        var btn = document.getElementById('btnAutoOpt');
+        if (btn) btn.textContent = wk + '-' + trialNum + '/' + totalTrials;
+        if (cycleEl) cycleEl.textContent = trialNum + '/' + totalTrials + ' · ' + wk + ' -';
+        showToast('  ' + wk + ' -' + step.toFixed(3) + '...');
+        var minusW = { ...trialWeightsObj, [wk]: Math.max(0, Number((orig - step).toFixed(3))) };
+        var rMinus = await runTrialWeights(key, minusW, trialEps);
+        showToast('    r=' + Number(rMinus).toFixed(3));
+
+        if (rMinus > bestReward) {
+          trialWeightsObj[wk] = Math.max(0, Number((orig - step).toFixed(3)));
+          bestReward = rMinus;
+          improved = true;
+          showToast('  → ' + wk + ' = ' + trialWeightsObj[wk]);
+        }
+      }
+    }
+
+    bestWeights = { ...trialWeightsObj };
+    if (!improved) { showToast('Раунд ' + (r+1) + ': без улучшений, стоп'); break; }
+  }
+
+  lesson = getLessonData(key) || lesson;
+  var changed = !sameWeights(origWeights, bestWeights);
+  lesson.weights = { ...bestWeights };
+  lesson.metrics = lesson.metrics || {};
+  lesson.metrics.autoOptBestScore = bestReward;
+  if (changed) {
+    lesson.completed = 0;
+    lesson.totalEpisodes = 0;
+    lesson.resumeFrom = 0;
+    lesson.latest = null;
+    lesson.best = null;
+    lesson.lastRoute = null;
+    lesson.chart = { rewards: [], deltas: [], losses: [], evals: [] };
+    lesson.status = 'веса подобраны — запуск RL';
+    delete lesson.convergeEpisodes;
+    delete lesson.weightProfileIdx;
+  }
+  setLessonData(key, lesson);
+  saveState();
+  populateInspector(key);
+  renderCanvas();
+  if (statusEl) statusEl.style.display = 'none';
+  autoOptTotalTrials = 0;
+  var btn = document.getElementById('btnAutoOpt'); if (btn) btn.textContent = 'Авто-опт';
+  showToast('Авто-опт завершён. Награда: ' + Number(bestReward).toFixed(3));
+  autoOptRunning = false;
+}
+
+document.getElementById('btnAutoOpt')?.addEventListener('click', autoOptimizeWeights);
+
+// Тумблер «Авто-опт перед запуском» — сохраняем состояние между перезагрузками
+(function() {
+  var chk = document.getElementById('chkAutoOptBeforeStart');
+  if (!chk) return;
+  try { chk.checked = localStorage.getItem('pg_autoOptBeforeStart') === '1'; } catch (e) {}
+  chk.addEventListener('change', function() {
+    try { localStorage.setItem('pg_autoOptBeforeStart', chk.checked ? '1' : '0'); } catch (e) {}
+    showToast('Авто-опт перед запуском: ' + (chk.checked ? 'вкл' : 'выкл'));
+  });
+})();
+
+// Sync from agent-training.html
+window.addEventListener('storage', function(e) {
+  if (e.key === STORAGE_KEY && e.newValue) {
+    var changedData = JSON.parse(e.newValue);
+    if (changedData.lessons) {
+      Object.keys(changedData.lessons).forEach(function(k) { lessonData[k] = changedData.lessons[k]; });
+    }
+    if (changedData.currentClass) currentTab = changedData.currentClass - 1;
+    if (changedData.currentBranch && (changedData.currentBranch === 'drone' || changedData.currentBranch === 'anti')) {
+      activeBranch = changedData.currentBranch;
+    }
+    renderTabs();
+    if (currentTab >= CLS_DATA.length) { renderFacultyView(); } else { renderCanvas(); }
+    updateProgress();
+    saveState();
+  }
+});
+
+// Restore active training if page was left and returned
+(function restoreTraining() {
+  try {
+    var raw = localStorage.getItem(TRAINING_STATE_KEY);
+    if (!raw) return;
+    var state = JSON.parse(raw);
+    if (!state.key || !state.jobId) return;
+    // Only restore if training was active recently (last 10 min)
+    if (Date.now() - state.updated > 600000) { localStorage.removeItem(TRAINING_STATE_KEY); return; }
+    var lesson = getLessonData(state.key);
+    if (!lesson) return;
+    activeTrainingKey = state.key;
+    activeJobId = state.jobId;
+    lesson.status = 'восстановлено...';
+    updateTrainingStatusBar();
+    renderCanvas(); saveState();
+    trainingTimer = setInterval(function() { pollTrainingJob(state.key); }, 500);
+    showToast('  восстановлен опрос тренировки: ' + state.key);
+  } catch(_) {}
+})();
+
+document.getElementById('nodeEpisodesInput')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.train) lesson.train = {};
+  lesson.train.episodes = Number(this.value) || 20;
+  setLessonData(selectedKey, lesson);
+  saveState();
+  renderCanvas();
+});
+
+document.getElementById('nodeLr')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.lr = Number(this.value) || 0.0001;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+document.querySelectorAll('#nodeWeights input[data-weight]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    if (!selectedKey) return;
+    var lesson = getLessonData(selectedKey);
+    if (!lesson) return;
+    if (!lesson.weights) lesson.weights = {};
+    lesson.weights[this.dataset.weight] = Number(this.value) || 0;
+    if (input.nextElementSibling) input.nextElementSibling.textContent = this.value;
+    setLessonData(selectedKey, lesson);
+    saveState();
+  });
+});
+
+</script>
+</body>
+</html>

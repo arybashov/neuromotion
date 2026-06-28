@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Программа обучения — Симулятор дронов 3D</title>
+  <style>
+    :root { --green: #5ba3e8; --green-dim: rgba(91,163,232,0.6); }
+    body { background: var(--bg); }
+    h1, h2, h3, h4 { color: #ccc !important; }
+    .docs-intro {
+      border: 1px solid rgba(91,163,232,0.35) !important;
+      background: rgba(91,163,232,0.06);
+      transition: box-shadow 0.25s ease;
+    }
+    .docs-intro:hover {
+      box-shadow: 0 0 12px rgba(91,163,232,0.3);
+    }
+    .docs-grid article {
+      border: 1px solid rgba(91,163,232,0.3);
+      border-radius: 6px; padding: 14px;
+      background: rgba(91,163,232,0.05);
+      transition: box-shadow 0.25s ease;
+    }
+    .docs-grid article:hover {
+      box-shadow: 0 0 12px rgba(91,163,232,0.3);
+    }
+    .curriculum-grid article {
+      border: 1px solid #5ba3e8;
+      border-radius: 6px; padding: 14px 14px 10px;
+      display: flex; flex-direction: column;
+      transition: box-shadow 0.25s ease;
+    }
+    .curriculum-grid article p { flex: 1; margin-bottom: 0; }
+    .curriculum-grid article:nth-child(1)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(2)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(3)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(4)  { background: rgba(91,163,232,0.12); }
+    .curriculum-grid article:nth-child(5)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(6)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(7)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(8)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(9)  { background: rgba(91,163,232,0.08); }
+    .curriculum-grid article:nth-child(10) { background: rgba(91,163,232,0.12); }
+    .curriculum-grid article.is-current {
+      border-color: #5ba3e8 !important;
+    }
+    .curriculum-grid article.is-current span {
+      color: #5ba3e8 !important;
+    }
+    .curriculum-grid article:hover {
+      box-shadow: 0 0 12px rgba(91,163,232,0.3);
+      filter: brightness(1.3);
+    }
+    .lesson-blocks {
+      display: flex; gap: 4px; margin-top: 10px; padding-top: 8px;
+      border-top: 1px solid rgba(91,163,232,0.15);
+    }
+    .lesson-chip {
+      font-size: 9px; font-family: "SF Mono","Fira Code",monospace;
+      color: #e8a830; background: rgba(232,168,48,0.08);
+      border: 1px solid rgba(232,168,48,0.2); border-radius: 3px;
+      padding: 2px 6px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .curriculum-pipeline div {
+      border: 1px solid rgba(91,163,232,0.3);
+      border-radius: 6px; padding: 14px;
+      background: rgba(91,163,232,0.05);
+      transition: box-shadow 0.25s ease;
+    }
+    .curriculum-pipeline div:hover {
+      box-shadow: 0 0 12px rgba(91,163,232,0.3);
+    }
+    .docs-section {
+      border: 1px solid rgba(91,163,232,0.2);
+      border-radius: 6px; padding: 14px;
+      background: rgba(91,163,232,0.04);
+      transition: box-shadow 0.25s ease;
+    }
+    .docs-section:hover {
+      box-shadow: 0 0 12px rgba(91,163,232,0.2);
+    }
+    .tick-flow div {
+      border-left: 2px solid rgba(91,163,232,0.35) !important;
+      color: #e8a830;
+    }
+    .tick-flow span { color: #e8a830; }
+    .docs-nav a {
+      border: 1px solid rgba(91,163,232,0.3);
+      color: #e8a830;
+      transition: box-shadow 0.25s ease;
+    }
+    .docs-nav a:hover {
+      box-shadow: 0 0 10px rgba(91,163,232,0.35);
+      border-color: #e8a830;
+      color: #f0c040;
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body class="docs-body">
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a class="active" href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+  <header class="docs-topbar">
+
+    <h1>Программа обучения авиационных беспилотных систем</h1>
+
+  </header>
+
+  <main class="docs-page">
+    <section class="docs-intro">
+      <div>
+        <div class="docs-kicker">Обзор</div>
+        <h2>Единая программа Deep RL от простого наведения до 3D полигона</h2>
+        <p>
+          Цель нейросетевого-обучающего тренажера — последовательно усложнять среду и формировать
+          интуитивную политику управления дроном, пригодную для переноса в бортовой контроллер.
+          Обучение не смешивает принятие решений с физикой: агент выбирает действие, а полигон
+          проверяет его на достоверной динамике, шумах, задержках и ограничениях аппарата.
+        </p>
+      </div>
+      <div class="tick-flow">
+        <div><span>01</span>наблюдение симулятора</div>
+        <div><span>02</span>политика RL</div>
+        <div><span>03</span>шаг физики</div>
+        <div><span>04</span>награда</div>
+        <div><span>05</span>экспорт</div>
+      </div>
+    </section>
+
+    <nav class="docs-nav" aria-label="Разделы программы">
+      <a href="#principles">Принципы</a>
+      <a href="#classes">Классы 01–10</a>
+      <a href="#pipeline">Пайплайн</a>
+    </nav>
+
+    <section id="principles" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker">Цели обучения</div>
+        <h2>Что должна дать программа обучения</h2>
+      </div>
+      <div class="metrics">
+        <div><span>sim-to-real</span><b>шумы + задержки</b></div>
+        <div><span>частота политики</span><b>50–100 Гц</b></div>
+        <div><span>агенты</span><b>дрон / антидрон</b></div>
+        <div><span>развертывание</span><b>ONNX / TensorRT Lite</b></div>
+      </div>
+      <div class="docs-grid compact">
+        <article>
+          <h3>Раздельная физика</h3>
+          <p>Политика принимает решение, симулятор выполняет движение. Так можно менять RL-агента без переписывания физики полигона.</p>
+        </article>
+        <article>
+          <h3>Два класса аппаратов</h3>
+          <p>Ударный дрон и антидрон обучаются раздельно, но проходят совместимую лестницу усложнения сценариев.</p>
+        </article>
+        <article>
+          <h3>Групповое поведение</h3>
+          <p>Кооперация появляется после одиночных задач, когда агент уже стабильно решает наведение, обзор и вертикальный профиль.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="classes" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker" style="color:#e8a830">Этапы 01–10</div>
+        <h2>Классы нейросетевого обучения</h2>
+      </div>
+      <div class="curriculum-grid">
+        <article>
+          <span>01</span>
+          <h3>Только цель</h3>
+          <p>Идеальная кинематика в плоскости. Агент учится идти к точке без инерции, шумов и противника.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Инерция и пределы</h3>
+          <p>Добавляются скорость, ускорение, радиус разворота и ограничения управляющего воздействия.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Ограниченный обзор</h3>
+          <p>Частичная наблюдаемость, шумы сенсоров, потеря контакта и работа по неполной информации.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article class="is-current">
+          <span>04</span>
+          <h3>2.5D профиль полета</h3>
+          <p>Плоский полигон без препятствий. Агент учится управлять высотой, набором, снижением и безопасным высотным коридором.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>05</span>
+          <h3>Одиночный противник</h3>
+          <p>Преследование или уклонение от движущейся цели с учетом скорости сближения и предсказания траектории.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>06</span>
+          <h3>Адаптивность</h3>
+          <p>Противник меняет маневр. Политика должна сохранять устойчивость, а не запоминать один сценарий.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>07</span>
+          <h3>Кооперация</h3>
+          <p>Несколько антидронов распределяют цели, избегают дублирования и сохраняют рабочие зоны ответственности.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>08</span>
+          <h3>Роевое движение</h3>
+          <p>Групповая плотность, деконфликт траекторий, согласованное движение и устойчивость к потере отдельных агентов.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>09</span>
+          <h3>3D полигон</h3>
+          <p>Полная физика, ветер, задержки, ошибки датчиков и randomized-сценарии для подготовки к sim-to-real.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+        <article>
+          <span>10</span>
+          <h3>Экзамен</h3>
+          <p>Смешанные сценарии, статистическая сдача, проверка робастности и экспорт политики в бортовой runtime.</p>
+          <div class="lesson-blocks"><div class="lesson-chip">УРОК 1</div><div class="lesson-chip">УРОК 2</div><div class="lesson-chip">УРОК 3</div><div class="lesson-chip">УРОК 4</div><div class="lesson-chip">УРОК 5</div></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="pipeline" class="docs-section">
+      <div class="section-heading">
+        <div class="docs-kicker">Пайплайн внедрения</div>
+        <h2>От полигона к бортовому контроллеру</h2>
+      </div>
+      <div class="curriculum-pipeline">
+        <div><span>Симулятор</span><b>наблюдение + физика</b></div>
+        <div><span>PPO / SAC</span><b>обучение политики</b></div>
+        <div><span>Оценка</span><b>серии экзаменов</b></div>
+        <div><span>ONNX</span><b>экспорт модели</b></div>
+        <div><span>Flight controller</span><b>50–100 Гц</b></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

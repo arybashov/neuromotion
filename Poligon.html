@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>НАЗЕМНАЯ ТАКТИЧЕСКАЯ ПОСТАНОВКА 3D</title>
+  <style>
+    header .doc-link { color: #e8a830; border-color: rgba(232,168,48,0.35); }
+    header .doc-link:hover { background: rgba(232,168,48,0.08); border-color: rgba(232,168,48,0.55); }
+    header h1 { color: #ccc; margin-left: 2cm; }
+    .lesson-row { margin-left: 3cm; display: inline; }
+    header .logo { margin-left: 10cm; }
+    .radar-pos-row { display: flex; gap: 6px; align-items: center; margin: 0; }
+    .radar-pos-row label { color: #889; font-size: 11px; }
+    .radar-pos-row input[type="number"] { width: 70px; background: #1a1c1e; border: 1px solid #444; color: #ccc; padding: 3px 6px; font-size: 11px; border-radius: 3px; }
+    .coord-box { display: flex; align-items: center; gap: 6px; border: 1px solid #333; border-radius: 4px; padding: 3px 8px; background: rgba(91,163,232,0.03); }
+    .mode-toggle { display: flex; flex-direction: row; gap: 8px; width: 100%; margin-bottom: 8px; }
+    .mode-opt { flex: 1; display: flex; align-items: center; justify-content: center; color: #889; font-size: 11px; cursor: pointer; background: none; border: 1px solid #555; border-radius: 4px; padding: 6px 0; font-family: inherit; font-style: italic; transition: all 0.15s; }
+    .mode-opt.is-active { border-color: #e8a830; color: #e8a830; box-shadow: 0 0 8px rgba(232,168,48,0.4); }
+    .mode-opt:hover { border-color: #e8a830; color: #e8a830; }
+    .mode-opt input { display: none; }
+    .auto-ctrls { display: flex; flex-direction: column; gap: 6px; }
+    .auto-ctrls .ctrl { margin: 0; }
+    .auto-ctrls select { width: 100%; background: #1a1c1e; border: 1px solid #555; color: #ccc; padding: 4px 6px; font-size: 11px; border-radius: 3px; font-family: inherit; }
+    .apply-btn { width: 100%; padding: 6px 0; background: none; border: 1px solid #e8a830; color: #e8a830; font-size: 11px; border-radius: 4px; cursor: pointer; font-family: inherit; font-style: italic; transition: all 0.15s; }
+    .apply-btn:hover { background: rgba(232,168,48,0.1); box-shadow: 0 0 8px rgba(232,168,48,0.3); }
+    .scenario-desc { font-size: 10px; color: #777; margin-top: 4px; line-height: 1.3; min-height: 14px; }
+    .cam-layout-ctrl { display: flex; flex-direction: row; gap: 8px; width: 100%; }
+    .cam-layout-opt { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 11px; cursor: pointer; background: none; border: 1px solid #555; border-radius: 4px; padding: 6px 0; font-family: inherit; font-style: italic; transition: all 0.15s; }
+    .cam-layout-opt.is-active { border-color: #e8a830; color: #e8a830; box-shadow: 0 0 8px rgba(232,168,48,0.4); }
+    .cam-layout-opt:hover { border-color: #e8a830; color: #e8a830; }
+    .cam-layout-opt input { display: none; }
+    .btn-circle { display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 11px; font-style: italic; letter-spacing: 0.02em; cursor: pointer; background: none; border: 1px solid #555; border-radius: 4px; padding: 4px 10px; font-family: inherit; transition: all 0.15s; }
+    .btn-circle.is-active { border-color: #5ba3e8; color: #5ba3e8; box-shadow: 0 0 8px rgba(91,163,232,0.4); }
+    .btn-circle:hover { border-color: #5ba3e8; color: #5ba3e8; box-shadow: 0 0 8px rgba(91,163,232,0.4); }
+    .panel { background: #0f1e2e; border-color: rgba(91,163,232,0.2); }
+    .panel-title { color: #7bb8f0; }
+    .ctrl input[type=range] { margin-left: 1cm; }
+    .ctrl span { margin-right: 1cm; }
+  </style>
+  <script type="module" crossorigin src="/assets/Poligon-C3xIc4DC.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/simulation-QYMQpjQX.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-ByO9PiJf.js">
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a class="active" href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+  <header>
+    <h1>НАЗЕМНАЯ ТАКТИЧЕСКАЯ ПОСТАНОВКА</h1>
+    <div class="lesson-row">
+    <a class="doc-link" href="agent-training.html">Урок 1</a>
+    <a class="doc-link" href="agent-training.html">Урок 2</a>
+    <a class="doc-link" href="agent-training.html">Урок 3</a>
+    <a class="doc-link" href="agent-training.html">Урок 4</a>
+    <a class="doc-link" href="agent-training.html">Урок 5</a>
+    </div>
+    <div class="logo">СИМУЛЯЦИЯ // 3D ФИЗИКА</div>
+    <button class="icon-button settings-top-button" id="btnSettings" type="button" aria-label="Установки">⚙</button>
+  </header>
+
+  <div class="settings-overlay" id="settingsOverlay" aria-hidden="true">
+    <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h2 id="settingsTitle">Установки</h2>
+        <button class="icon-button" id="btnSettingsClose" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <div class="settings-grid">
+        <div class="settings-info">
+          <div class="ml-row"><span>Размер полигона</span><b>3000 × 3000 м</b></div>
+          <div class="ml-row"><span>Физика</span><b>3D аэродинамика</b></div>
+          <div class="ml-row"><span>Диапазон высот</span><b>15-250 м</b></div>
+        </div>
+        <div class="select-row">
+          <label for="droneIconMode">Иконка дрона</label>
+          <select id="droneIconMode">
+            <option value="plane" selected>Маленький самолет</option>
+            <option value="legacy">Старая</option>
+            <option value="dot">Точка</option>
+            <option value="custom">Своя PNG</option>
+          </select>
+        </div>
+        <div class="file-row">
+          <label for="droneIconFile">PNG дрона</label>
+          <input type="file" id="droneIconFile" accept="image/png,image/webp,image/jpeg,image/svg+xml,.svg">
+          <span id="droneIconFileStatus">не выбрана</span>
+        </div>
+        <div class="ctrl setting-ctrl">
+          <label for="customIconRotation">Поворот своей иконки</label>
+          <input type="range" min="-180" max="180" value="90" step="5" id="customIconRotation">
+          <span id="customIconRotationV">90°</span>
+        </div>
+        <div class="ctrl setting-ctrl">
+          <label for="customIconSize">Размер своей иконки</label>
+          <input type="range" min="20" max="120" value="46" step="2" id="customIconSize">
+          <span id="customIconSizeV">46</span>
+        </div>
+        <div class="select-row">
+          <label for="antiIconMode">Иконка антидрона</label>
+          <select id="antiIconMode">
+            <option value="legacy" selected>Старая</option>
+            <option value="quad">Квадрокоптер</option>
+            <option value="plane">Самолет</option>
+            <option value="dot">Точка</option>
+            <option value="custom">Своя PNG/SVG</option>
+          </select>
+        </div>
+        <div class="file-row">
+          <label for="antiIconFile">PNG/SVG антидрона</label>
+          <input type="file" id="antiIconFile" accept="image/png,image/webp,image/jpeg,image/svg+xml,.svg">
+          <span id="antiIconFileStatus">не выбрана</span>
+        </div>
+        <div class="ctrl setting-ctrl">
+          <label for="antiCustomIconRotation">Поворот своей иконки</label>
+          <input type="range" min="-180" max="180" value="0" step="5" id="antiCustomIconRotation">
+          <span id="antiCustomIconRotationV">0°</span>
+        </div>
+        <div class="ctrl setting-ctrl">
+          <label for="antiCustomIconSize">Размер своей иконки</label>
+          <input type="range" min="20" max="120" value="38" step="2" id="antiCustomIconSize">
+          <span id="antiCustomIconSizeV">38</span>
+        </div>
+
+        <div class="btn-row compact-buttons">
+          <button id="btnSettingsReset" type="button">Сброс установок</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+
+  <main class="main">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-title">Постановка</div>
+        <div class="controls">
+          <div class="mode-toggle" id="scenarioModeToggle">
+            <label class="mode-opt is-active" data-mode="manual">
+              <input type="radio" name="scenarioMode" value="manual" checked>Ручной
+            </label>
+            <label class="mode-opt" data-mode="auto">
+              <input type="radio" name="scenarioMode" value="auto">Авто
+            </label>
+          </div>
+          <div id="scenarioAutoCtrls" style="display:none" class="auto-ctrls">
+            <div class="ctrl">
+              <label for="scenarioClass">Класс</label>
+              <select id="scenarioClass">
+                <option value="1">1 — Только цель</option>
+                <option value="2">2 — Инерция и пределы</option>
+                <option value="3">3 — Ограниченный обзор</option>
+                <option value="4">4 — 2.5D профиль</option>
+                <option value="5">5 — Одиночный противник</option>
+                <option value="6">6 — Адаптивность</option>
+                <option value="7">7 — Кооперация</option>
+                <option value="8">8 — Роевое движение</option>
+                <option value="9">9 — 3D полигон</option>
+                <option value="10">10 — Экзамен</option>
+              </select>
+            </div>
+            <div class="ctrl">
+              <label for="scenarioLesson">Урок</label>
+              <select id="scenarioLesson">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </div>
+            <button id="btnApplyScenario" type="button" class="apply-btn">Применить</button>
+            <div id="scenarioDesc" class="scenario-desc"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Параметры камер</div>
+        <div class="controls">
+          <div class="ctrl">
+            <label for="camrange">Дальность (м)</label>
+            <input type="range" min="300" max="2500" value="900" step="50" id="camrange">
+            <span id="camrangeV">900</span>
+          </div>
+          <div class="ctrl">
+            <label for="camFov">Угол обзора (°)</label>
+            <input type="range" min="10" max="120" value="50" step="1" id="camFov">
+            <span id="camFovV">50</span>
+          </div>
+          <div class="ctrl">
+            <label for="camCount">Кол_во </label>
+            <input type="range" min="1" max="20" value="10" step="1" id="camCount">
+            <span id="camCountV">10</span>
+          </div>
+          <div class="ctrl">
+            <label for="camRadius">Радиус (м)</label>
+            <input type="range" min="0" max="1000" value="450" step="10" id="camRadius">
+            <span id="camRadiusV">450</span>
+          </div>
+          <div class="ctrl cam-layout-ctrl">
+            <label class="cam-layout-opt is-active"><input type="radio" name="camLayout" value="0" checked>Радиус</label>
+            <label class="cam-layout-opt"><input type="radio" name="camLayout" value="1">Рандомно</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Статистика</div>
+        <div class="stats-row">
+          <div class="stat">Камеры: <b id="sCameras">0</b></div>
+          <div class="stat">РЛС: <b id="sRadars">1</b></div>
+          <div class="stat">Цели: <b id="sTargets">0</b></div>
+          <div class="stat">Поинты: <b id="sPoints">0</b></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Симуляция</div>
+        <div class="btn-row sim-buttons">
+          <button id="btnPause" type="button" aria-pressed="true">▶</button>
+          <button id="btnReset" type="button" disabled>■</button>
+        </div>
+        <div class="ctrl speed-ctrl">
+          <label for="runSpeed" style="color:#888">Скорость</label>
+          <input type="range" min="1" max="100" value="10" step="1" id="runSpeed">
+          <span id="runSpeedV">10x</span>
+        </div>
+      </section>
+
+    </aside>
+
+    <section class="canvas-area" aria-label="Симуляция полигона">
+      <canvas id="c"></canvas>
+      <canvas id="elev"></canvas>
+    </section>
+
+    <aside class="ml-sidebar">
+      <section class="panel">
+        <div class="panel-title">Легенда</div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#5ba3e8"></div>Дрон (цвет = высота)</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e04b4b"></div>Антидрон</div>
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(100,160,255,0.6)"></div>Камера обнаружения</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e8a830"></div>Цель</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#fff"></div>Радар</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#4ecb71"></div>Поинт</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Цели</div>
+        <div class="controls">
+          <div class="ctrl">
+            <label for="ntargets">Кол-во</label>
+            <input type="range" min="0" max="20" value="3" step="1" id="ntargets">
+            <span id="ntargetsV">3</span>
+          </div>
+          <div class="ctrl">
+            <label for="targetAlt">Высота (м)</label>
+            <input type="range" min="0" max="300" value="0" step="5" id="targetAlt">
+            <span id="targetAltV">0</span>
+          </div>
+          <div class="ctrl">
+            <label for="targetDev">Рандом (м)</label>
+            <input type="range" min="0" max="100" value="0" step="1" id="targetDev">
+            <span id="targetDevV">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Поинт</div>
+        <div class="controls">
+          <div class="ctrl">
+            <label for="npoints">Кол-во</label>
+            <input type="range" min="0" max="20" value="0" step="1" id="npoints">
+            <span id="npointsV">0</span>
+          </div>
+          <div class="ctrl">
+            <label for="pointAlt">Высота (м)</label>
+            <input type="range" min="0" max="300" value="0" step="5" id="pointAlt">
+            <span id="pointAltV">0</span>
+          </div>
+          <div class="ctrl">
+            <label for="pointDev">Рандом (м)</label>
+            <input type="range" min="0" max="100" value="0" step="1" id="pointDev">
+            <span id="pointDevV">0</span>
+          </div>
+          <div class="ctrl" style="display:flex;gap:12px;margin-left:0">
+            <label for="pointX" style="font-size:20px;color:#5ba3e8">X</label>
+            <input type="number" id="pointX" value="1500" min="0" max="3000" step="10">
+            <label for="pointY" style="font-size:20px;color:#5ba3e8;margin-left:12px">Y</label>
+            <input type="number" id="pointY" value="1500" min="0" max="3000" step="10">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Параметры Радара</div>
+        <div class="controls">
+          <div class="ctrl">
+            <label for="radarRange">Дальность (м)</label>
+            <input type="range" min="1000" max="5000" value="3000" step="100" id="radarRange">
+            <span id="radarRangeV">3000</span>
+          </div>
+          <div class="ctrl">
+            <label for="radarFov">Угол обзора (°)</label>
+            <input type="range" min="10" max="180" value="180" step="1" id="radarFov">
+            <span id="radarFovV">180</span>
+          </div>
+
+        </div>
+      </section>
+    </aside>
+  </main>
+
+</body>
+</html>

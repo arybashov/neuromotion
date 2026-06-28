@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тестовые испытания — Полигон 3D</title>
+  <style>
+    :root { --green: #5ba3e8; --green-dim: rgba(91,163,232,0.6); }
+    body { background: var(--bg); }
+    header.docs-topbar h1 { color: #fff !important; }
+    .trials-page {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+    }
+    .trials-page h1 {
+      font-family: var(--mono);
+      font-size: 18px;
+      color: #fff;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      text-align: center;
+      margin-left: 2cm;
+    }
+    .trials-page > .subhead {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: #5ba3e8;
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 20px;
+    }
+    .trial-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(91,163,232,0.15);
+      justify-content: center;
+    }
+    .trial-tab {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--text-dim);
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .trial-tab:hover { color: #e8a830; text-shadow: 0 0 6px rgba(232,168,48,0.4); }
+    .trial-tab.active {
+      color: #e8a830;
+      border-bottom-color: #e8a830;
+      text-shadow: 0 0 6px rgba(232,168,48,0.4);
+    }
+    .trial-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .trial-card h2 {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .trial-card h3 {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .trial-card h4 {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--green-dim);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .trial-card > p {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+    .trial-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .trial-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .trial-highlight {
+      background: rgba(0,0,0,0.18);
+      border-left: 3px solid var(--green);
+      border-radius: 4px;
+      padding: 14px 16px;
+    }
+    .trial-highlight h3 {
+      color: var(--green);
+    }
+    .trial-highlight p {
+      color: #e8a830;
+      font-size: 12px;
+      margin-bottom: 0;
+    }
+    .trial-highlight p:not(.small-text) {
+      margin-bottom: 4px;
+    }
+    .trial-highlight p:not(.small-text):last-of-type {
+      margin-bottom: 20px;
+    }
+    .trial-highlight p strong {
+      font-weight: 400;
+    }
+    .trial-highlight .small-text {
+      margin-bottom: 5px !important;
+    }
+    .trial-highlight .trial-btn {
+      margin-top: 0 !important;
+    }
+    .trial-features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .trial-features li {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text);
+      padding: 5px 0 5px 18px;
+      position: relative;
+    }
+    .trial-features li::before {
+      content: '✓';
+      color: var(--green);
+      position: absolute;
+      left: 0;
+      font-weight: 700;
+    }
+    .trial-case {
+      background: rgba(0,0,0,0.12);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+    }
+    .trial-case strong {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 0.04em;
+    }
+    .trial-case p {
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--text-dim);
+      margin: 6px 0;
+      line-height: 1.5;
+    }
+    .trial-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      background: transparent;
+      color: #e8a830;
+      border: 1px solid rgba(232,168,48,0.4);
+      border-radius: 3px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.25s ease;
+    }
+    .trial-btn:hover {
+      background: rgba(232,168,48,0.1);
+      border-color: #e8a830;
+      box-shadow: 0 0 10px rgba(232,168,48,0.3);
+    }
+    .trial-btn-primary {
+      background: transparent;
+      border-color: rgba(232,168,48,0.4);
+    }
+    .trial-price-badge {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--green);
+    }
+    .trial-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .trial-steps h3 {
+      margin-top: 14px;
+    }
+    .trial-steps h3:first-child {
+      margin-top: 0;
+    }
+    .trial-steps p {
+      font-size: 13px !important;
+      font-weight: 400 !important;
+    }
+    .trial-form input,
+    .trial-form select,
+    .trial-form textarea {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid rgba(91,163,232,0.35);
+      border-radius: 3px;
+      padding: 7px 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      outline: none;
+    }
+    .trial-form input:focus,
+    .trial-form select:focus,
+    .trial-form textarea:focus {
+      border-color: var(--green);
+    }
+    .trial-form label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .trial-form select {
+      appearance: auto;
+    }
+    .trial-form textarea {
+      resize: vertical;
+      min-height: 50px;
+    }
+    .trial-form .form-group {
+      margin-bottom: 12px;
+    }
+    .trial-form input[type=checkbox] {
+      width: auto;
+      margin-right: 6px;
+      accent-color: var(--green);
+    }
+    .trial-form .checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .trial-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(91,163,232,0.12);
+      color: var(--green);
+      padding: 2px 10px;
+      border-radius: 10px;
+    }
+    .trial-video-box {
+      width: 100%; display: block;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .trial-video-caption {
+      text-align: center;
+      font-family: var(--sans);
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 8px 14px 0;
+    }
+    .trial-card {
+      background: rgba(91,163,232,0.05) !important;
+      border: 1px solid rgba(91,163,232,0.3) !important;
+      box-shadow: 0 0 8px rgba(91,163,232,0.1);
+      transition: box-shadow 0.25s ease;
+    }
+    .trial-card:hover {
+      box-shadow: 0 0 14px rgba(91,163,232,0.3);
+    }
+    .trial-highlight {
+      background: rgba(91,163,232,0.06) !important;
+      border-left: 3px solid #5ba3e8 !important;
+    }
+    .trial-case {
+      border: 1px solid rgba(91,163,232,0.2) !important;
+    }
+    .trial-video-box {
+      border-color: rgba(91,163,232,0.2) !important;
+    }
+    @media (max-width: 780px) {
+      .trials-page { padding: 16px; }
+      .trial-grid-2 { grid-template-columns: 1fr; }
+      .trial-grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body class="docs-body">
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a class="active" href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+  <header class="docs-topbar">
+    <h1>Программа тестовых испытаний</h1>
+  </header>
+  <main class="trials-page">
+    <p class="subhead">ТЕСТОВЫЙ ИСПЫТАТЕЛЬНЫЙ ПОЛИГОН — ОТ ОБЛАЧНОЙ СИМУЛЯЦИИ ДО РЕАЛЬНЫХ ЗАЕЗДОВ</p>
+    <!-- переключатель категорий -->
+    <div class="trial-tabs" id="catTabs">
+      <button class="trial-tab active" data-cat="warehouse">ВОЗДУШНАЯ</button>
+	  <button class="trial-tab active" data-cat="warehouse">Склад</button>
+      <button class="trial-tab" data-cat="street">Уборочная</button>
+      <button class="trial-tab" data-cat="road">Дорожная</button>
+      <button class="trial-tab" data-cat="industrial">Заводская</button>
+    </div>
+
+    <!-- видео + преимущества -->
+    <div class="trial-grid-2" style="margin-bottom:4px">
+      <div class="trial-card" style="padding:4px 0 0 0;overflow:hidden">
+        <video class="trial-video-box" controls width="100%" style="display:block">
+          <source src="assets/splash/drone_5.mp4" type="video/mp4">
+        </video>
+        <div class="trial-video-caption">Испытания на 3D полигоне</div>
+      </div>
+      <div class="trial-card">
+        <h2>Преимущества тестов</h2>
+        <ul class="trial-features">
+          <li>Минимальные простои — интеграция за 1 день</li>
+          <li>Безопасный режим с оператором-дублёром</li>
+          <li>Поддержка инженеров на всех этапах</li>
+          <li>По итогам — детальный отчёт + рекомендации</li>
+          <li>Зачёт стоимости теста при покупке лицензий</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Форматы: бесплатно / платно -->
+    <div class="trial-card">
+      <div class="trial-flex">
+        <h2>Форматы тестовых испытаний</h2>
+        <span class="trial-price-badge">от 0 ₽ до 250 000 ₽</span>
+      </div>
+      <div class="trial-grid-2" style="margin-top:8px">
+        <div class="trial-highlight">
+          <h3>Бесплатный тест</h3>
+          <p>При предварительной заявке на покупку <strong>от 10 лицензий</strong> (любая категория).</p>
+          <p>Включено: 30 дней ПО на 1 единицу, удалённая поддержка, отчёт.</p>
+          <p class="small-text" style="font-family:var(--sans);font-size:11px;color:var(--text-dim)">*Первые 5 клиентов в квартал.</p>
+          <a href="#trialForm" class="trial-btn" style="margin-top:8px">Заявка на бесплатный тест</a>
+        </div>
+        <div>
+          <h3>Платный тест (зачёт в лицензию)</h3>
+          <ul class="trial-features" id="paidPrices">
+            <li>Склад (погрузчики) — 150 000 ₽</li>
+          </ul>
+          <p style="font-family:var(--sans);font-size:12px;color:var(--text-dim);margin-bottom:5px">
+            5 дней активных испытаний + отчёт + поддержка инженера.<br>
+            Сумма засчитывается при покупке любой лицензии в течение 3 месяцев.
+          </p>
+          <a href="#trialForm" class="trial-btn" style="margin-top:0">Выбрать платный тест</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Облачная симуляция -->
+    <div class="trial-card">
+      <div class="trial-flex">
+        <h2>Симуляционная опция — тест в облаке</h2>
+        <span class="trial-badge">Быстрый старт за 1 час</span>
+      </div>
+      <p>Запустите виртуальную копию вашего транспортного средства в облачной среде без установки на реальную технику.</p>
+      <div class="trial-grid-2">
+        <div>
+          <ul class="trial-features">
+            <li>Точная модель динамики и сенсоров</li>
+            <li>Поддержка карт вашего склада / улицы</li>
+            <li>Оценка маршрутов без риска</li>
+            <li>Доступно 7 дней — бесплатно для зарегистрированных компаний</li>
+          </ul>
+          <button class="trial-btn trial-btn-primary" id="cloudBtn" style="margin-top:10px">Запустить облачную симуляцию</button>
+        </div>
+        <div class="trial-highlight">
+          <h4>Как начать?</h4>
+          <ol style="margin-left:16px;font-family:var(--sans);font-size:12px;color:var(--text-dim);line-height:1.6">
+            <li>Оставьте заявку (выберите «Симуляция»)</li>
+            <li>Получите доступ к панели управления</li>
+            <li>Загрузите схему движения и параметры</li>
+            <li>Запустите первый тест через 1 час</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кейсы -->
+    <div class="trial-card">
+      <h2>Кейсы клиентов</h2>
+      <div class="trial-grid-3">
+        <div class="trial-case">
+          <strong>Логистический центр «Север-2»</strong>
+          <p>Тест 2 погрузчиков на складе 5000 м². Обучение навигации в узких проходах за 3 дня. Экономия 30% времени перемещения.</p>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--green-dim)">→ Купили 12 лицензий</span>
+        </div>
+        <div class="trial-case">
+          <strong>«Чистый Город» (уборочная техника)</strong>
+          <p>Испытания на выделенном участке набережной. Автономное подметание в ночное время. После теста — подписка SaaS на 8 машин.</p>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--green-dim)">→ Перешли на Enterprise</span>
+        </div>
+        <div class="trial-case">
+          <strong>«АвтодорСтрой»</strong>
+          <p>Дорожная техника (катки). Симуляция в облаке + 2 дня полигонных тестов. Оптимизация маршрутов на 15%.</p>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--green-dim)">→ Закупка 5 лицензий</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 шага -->
+    <div class="trial-card trial-steps">
+      <h2>Программа за 4 шага</h2>
+      <div class="trial-grid-2">
+        <div>
+          <h3>1. Заявка и согласование</h3>
+          <p>Вы описываете задачи — мы подбираем сценарий (облачный, на вашей технике или на полигоне).</p>
+          <h3>2. Подготовка (1-2 дня)</h3>
+          <p>Предоставляем ПО, документацию. При необходимости выезжаем для калибровки сенсоров.</p>
+        </div>
+        <div>
+          <h3>3. Проведение испытаний (2-5 дней)</h3>
+          <p>Реальные заезды, запись телеметрии, проверка безопасности.</p>
+          <h3>4. Отчёт и демо</h3>
+          <p>Видео, графики KPI, рекомендации. Решение о покупке с зачётом стоимости теста.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Форма -->
+    <div class="trial-card" id="trialForm">
+      <h2>Заявка на участие</h2>
+      <form class="trial-form" id="trialFormEl">
+        <div class="trial-grid-2">
+          <div class="form-group">
+            <label>Ваше имя *</label>
+            <input type="text" required id="fName">
+          </div>
+          <div class="form-group">
+            <label>Компания *</label>
+            <input type="text" required id="fCompany">
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" required id="fEmail">
+          </div>
+          <div class="form-group">
+            <label>Телефон</label>
+            <input type="tel" id="fPhone">
+          </div>
+          <div class="form-group">
+            <label>Категория техники *</label>
+            <select id="fCat" required>
+              <option value="warehouse">Склад (погрузчики)</option>
+              <option value="street">Уборочная техника</option>
+              <option value="road">Дорожная техника</option>
+              <option value="industrial">Внутризаводские дороги</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Формат *</label>
+            <select id="fFormat" required>
+              <option value="free_10plus">Бесплатный (от 10 лицензий)</option>
+              <option value="paid">Платный с зачётом</option>
+              <option value="cloud_sim">Облачная симуляция</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Количество единиц</label>
+            <input type="number" id="fUnits" value="1" min="1">
+          </div>
+          <div class="form-group">
+            <label>Комментарий</label>
+            <textarea rows="2" id="fComment"></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="fAgree" required>
+            Согласен на обработку данных и готов подписать NDA при необходимости
+          </label>
+        </div>
+        <button type="submit" class="trial-btn trial-btn-primary">Отправить заявку</button>
+      </form>
+      <div style="font-family:var(--sans);font-size:11px;color:var(--text-dim);margin-top:10px">
+        После отправки с вами свяжется инженер в течение 24 часов.
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const prices = {
+      warehouse: 'Склад (погрузчики) — 150 000 ₽',
+      street: 'Уборочная техника — 200 000 ₽',
+      road: 'Дорожная техника — 250 000 ₽',
+      industrial: 'Внутризаводские дороги — 180 000 ₽'
+    };
+    let currentCat = 'warehouse';
+
+    document.querySelectorAll('#catTabs .trial-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#catTabs .trial-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCat = btn.dataset.cat;
+        document.getElementById('paidPrices').innerHTML = '<li>' + prices[currentCat] + '</li>';
+        document.getElementById('fCat').value = currentCat;
+      });
+    });
+
+    document.getElementById('cloudBtn').addEventListener('click', () => {
+      document.getElementById('fCat').value = currentCat;
+      document.getElementById('fFormat').value = 'cloud_sim';
+      document.getElementById('trialForm').scrollIntoView({ behavior: 'smooth' });
+      alert('Выберите параметры и отправьте форму. Доступ к облачной симуляции придёт на email в течение 1 часа.');
+    });
+
+    document.getElementById('trialFormEl').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('fName').value;
+      const company = document.getElementById('fCompany').value;
+      const email = document.getElementById('fEmail').value;
+      const cat = document.getElementById('fCat').value;
+      const fmt = document.getElementById('fFormat').value;
+      const units = document.getElementById('fUnits').value;
+      const fmtNames = { free_10plus: 'Бесплатный', paid: 'Платный', cloud_sim: 'Облачная симуляция' };
+      alert('Заявка принята!\n\nКлиент: ' + name + ', ' + company + '\nEmail: ' + email + '\nКатегория: ' + cat + '\nФормат: ' + fmtNames[fmt] + '\nКол-во: ' + units + '\n\nС вами свяжется инженер в течение 24 часов.');
+      e.target.reset();
+    });
+  </script>
+</body>
+</html>

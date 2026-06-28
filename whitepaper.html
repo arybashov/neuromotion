@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Технический отчёт — Модель перехвата дронов</title>
+  <!-- Самостоятельный академический стиль (не наследует тему симулятора). -->
+  <!-- Цвета вынесены в :root для последующей корректировки. -->
+  <style>
+    :root {
+      --paper:      #f4f1ea;   /* фон страницы (тёплая бумага) */
+      --surface:    #ffffff;   /* лист документа */
+      --ink:        #1b1d24;   /* основной текст */
+      --muted:      #5d6373;   /* вторичный текст */
+      --rule:       #dcd6c8;   /* линейки и рамки */
+      --rule-soft:  #ece7dc;   /* мягкие линейки */
+      --accent:     #2b4a7e;   /* акцент: заголовки, ссылки, номера */
+      --accent-2:   #7a8db5;   /* вторичный акцент */
+      --accent-bg:  #eaeff7;   /* подложка акцента */
+      --key:        #9a5b00;   /* «ключевой» маркер */
+      --key-bg:     #f6ecd8;
+      --code-bg:    #f3f1ec;
+      --eq-bg:      #f7f6f2;
+      --ok:         #2f6f4f;
+      --maxw:       880px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Georgia', 'PT Serif', 'Times New Roman', serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- Верхняя панель ---------- */
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; gap: 16px;
+      padding: 11px 22px;
+      background: rgba(244, 241, 234, 0.92);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--rule);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 13px;
+    }
+    .topbar .mark {
+      font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); font-size: 12px;
+    }
+    .topbar nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+    .topbar nav a, .topbar nav button {
+      font-family: inherit; font-size: 13px;
+      color: var(--muted); background: transparent;
+      border: 1px solid transparent; border-radius: 6px;
+      padding: 6px 11px; cursor: pointer;
+    }
+    .topbar nav a:hover, .topbar nav button:hover {
+      color: var(--accent); border-color: var(--rule); text-decoration: none;
+      background: var(--surface);
+    }
+
+    /* ---------- Лист документа ---------- */
+    .sheet {
+      max-width: var(--maxw);
+      margin: 30px auto 80px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 14px 40px rgba(20,25,40,.07);
+      padding: 56px 64px 72px;
+    }
+
+    /* ---------- Титул ---------- */
+    .title-block { text-align: center; border-bottom: 2px solid var(--ink); padding-bottom: 28px; margin-bottom: 8px; }
+    .doc-kind {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 16px;
+    }
+    .title-block h1 {
+      font-size: 30px; line-height: 1.22; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em;
+    }
+    .title-block .subtitle { font-size: 18px; color: var(--muted); font-style: italic; margin: 0 0 20px; }
+    .title-meta {
+      display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;
+      font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12.5px; color: var(--muted);
+    }
+    .title-meta b { color: var(--ink); font-weight: 600; }
+    .draft-flag {
+      display: inline-block; margin-top: 18px;
+      font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--key); border: 1px solid var(--key); border-radius: 999px; padding: 3px 12px;
+    }
+
+    /* ---------- Аннотация ---------- */
+    .abstract {
+      margin: 30px 0; padding: 20px 24px;
+      background: var(--accent-bg); border: 1px solid var(--rule-soft); border-radius: 4px;
+    }
+    .abstract h2 {
+      font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+      margin: 0 0 8px; font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .abstract p { margin: 0 0 8px; font-size: 15.5px; }
+    .abstract p:last-child { margin-bottom: 0; }
+    .keywords { font-size: 14px; color: var(--muted); margin-top: 10px; }
+    .keywords b { color: var(--ink); }
+
+    /* ---------- Оглавление ---------- */
+    .toc { margin: 34px 0 10px; padding: 22px 26px; border: 1px solid var(--rule); border-radius: 4px; }
+    .toc h2 {
+      font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+      margin: 0 0 14px; font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .toc ol { list-style: none; counter-reset: toc; margin: 0; padding: 0; }
+    .toc > ol > li { counter-increment: toc; margin: 5px 0; }
+    .toc > ol > li > a::before { content: counter(toc) ".  "; color: var(--accent); font-weight: 700; }
+    .toc ol ol { counter-reset: subtoc; margin: 3px 0 7px 22px; }
+    .toc ol ol li { counter-increment: subtoc; margin: 2px 0; font-size: 15px; }
+    .toc ol ol li > a::before { content: counter(toc) "." counter(subtoc) "  "; color: var(--accent-2); font-weight: 600; }
+    .toc a { color: var(--ink); }
+    .toc a:hover { color: var(--accent); }
+
+    /* ---------- Разделы ---------- */
+    .sheet > section { counter-increment: sec; margin-top: 46px; }
+    .sheet { counter-reset: sec; }
+    section > h2 {
+      font-size: 22px; font-weight: 700; margin: 0 0 6px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--rule); letter-spacing: -0.01em;
+    }
+    section > h2::before {
+      content: counter(sec) ".  "; color: var(--accent); font-weight: 700;
+    }
+    section { counter-reset: sub; }
+    h3.sub { font-size: 17.5px; font-weight: 700; margin: 26px 0 6px; color: var(--ink); counter-increment: sub; }
+    h3.sub::before { content: counter(sec) "." counter(sub) "  "; color: var(--accent); font-weight: 700; }
+    h4 { font-size: 15px; font-weight: 700; margin: 18px 0 4px; color: var(--accent); font-family: 'Helvetica Neue', Arial, sans-serif; letter-spacing: 0.01em; }
+
+    p { margin: 10px 0; }
+    .lead { font-size: 17.5px; color: var(--ink); }
+
+    ul, ol.list { margin: 10px 0 10px 4px; padding-left: 24px; }
+    li { margin: 6px 0; }
+    ul li::marker { color: var(--accent-2); }
+    ol.list li::marker { color: var(--accent); font-weight: 700; }
+    li b, p b { color: var(--ink); }
+
+    code {
+      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.86em; background: var(--code-bg); border: 1px solid var(--rule-soft);
+      border-radius: 4px; padding: 1px 5px; color: #34406a;
+    }
+
+    /* ---------- Блоки формул ---------- */
+    .eq {
+      margin: 16px 0; padding: 4px 20px;
+      background: var(--eq-bg); border-left: 3px solid var(--accent-2); border-radius: 0 4px 4px 0;
+    }
+    mjx-container { color: var(--ink); }
+    mjx-container[display="true"] { margin: 6px 0 !important; max-width: 100%; }
+    /* на узких экранах формула масштабируется по ширине, без бокового слайдера */
+    mjx-container[display="true"] svg { max-width: 100%; height: auto; }
+
+    /* ---------- Врезки ---------- */
+    .note {
+      margin: 18px 0; padding: 14px 18px;
+      border-left: 3px solid var(--accent); background: var(--accent-bg); border-radius: 0 4px 4px 0;
+      font-size: 15.5px;
+    }
+    .note .label {
+      display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;
+    }
+
+    /* ---------- Таблицы ---------- */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; }
+    caption {
+      caption-side: top; text-align: left; font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 12.5px; color: var(--muted); margin-bottom: 8px;
+    }
+    caption b { color: var(--accent); }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+    thead th {
+      font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--accent); border-bottom: 1.5px solid var(--rule);
+    }
+    tbody tr:hover { background: var(--accent-bg); }
+    td code { white-space: nowrap; }
+    .sym { font-family: 'Georgia', serif; font-style: italic; white-space: nowrap; }
+
+    /* статус-метки в дорожной карте */
+    .badge {
+      display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px;
+      font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge.done  { color: #1f5b3f; background: #dcefe2; border: 1px solid #a9d4bd; }
+    .badge.doing { color: #8a5a00; background: #f7ecd5; border: 1px solid #e2c489; }
+    .badge.plan  { color: #34406a; background: #e6ecf7; border: 1px solid #b8c6e2; }
+    .badge.hold  { color: #6a4a6a; background: #f0e6f0; border: 1px solid #d4bdd4; }
+
+    .key-tag {
+      display: inline-block; margin-left: 8px; font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--key); background: var(--key-bg); border: 1px solid #e0c79a;
+      border-radius: 999px; padding: 1px 8px; vertical-align: middle;
+    }
+
+    /* карточки метрик */
+    .metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 18px 0; }
+    .metric-row .m {
+      border: 1px solid var(--rule); border-radius: 4px; padding: 14px 16px; background: var(--eq-bg); text-align: center;
+    }
+    .metric-row .m span {
+      display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .metric-row .m b { font-size: 24px; color: var(--accent); }
+
+    hr.sec-div { border: none; border-top: 1px solid var(--rule-soft); margin: 0; }
+
+    footer.colophon {
+      max-width: var(--maxw); margin: 0 auto 60px; padding: 0 64px;
+      font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12.5px; color: var(--muted); text-align: center;
+    }
+
+    /* ---------- Адаптив ---------- */
+    @media (max-width: 760px) {
+      body { font-size: 16px; }
+      .sheet { padding: 32px 22px 48px; margin: 14px 10px 50px; }
+      footer.colophon { padding: 0 22px; }
+      .metric-row { grid-template-columns: repeat(2, 1fr); }
+      .title-block h1 { font-size: 24px; }
+    }
+
+    /* ---------- Печать в PDF ---------- */
+    @media print {
+      body { background: #fff; }
+      .topbar { display: none; }
+      .sheet { box-shadow: none; border: none; margin: 0; max-width: none; padding: 0 12mm; }
+      section { break-inside: avoid-page; }
+      .eq, table, .note { break-inside: avoid; }
+      a { color: var(--ink); }
+    }
+  </style>
+  <!-- MathJax 3: настоящий LaTeX. \( \) inline, \[ \] блок. -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']], tags: 'none' },
+      svg: { fontCache: 'global' },
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+  <header class="topbar">
+    <span class="mark">СИМ // Технический отчёт</span>
+    <nav>
+      <a href="simulator.html">Симулятор</a>
+      <a href="curriculum.html">Программа</a>
+      <button type="button" onclick="window.print()">Скачать PDF</button>
+    </nav>
+  </header>
+
+  <main class="sheet">
+    <!-- ===================== ТИТУЛ ===================== -->
+    <div class="title-block">
+      <div class="doc-kind">Технический отчёт · Полигон-3D</div>
+      <h1>Физически правдоподобная 3D-симуляция атаки ударных дронов и их перехвата</h1>
+      <p class="subtitle">Математическая модель, тактические манёвры и контур обучения с подкреплением</p>
+      <div class="title-meta">
+        <div>Поле <b>3000 × 3000 м</b></div>
+        <div>Шаг <b>Δt = 0.02 с</b></div>
+        <div>Дрон <b>самолётного типа</b></div>
+        <div>Антидрон <b>мультикоптер</b></div>
+      </div>
+      <div class="draft-flag">Черновик — для обсуждения</div>
+    </div>
+
+    <!-- ===================== АННОТАЦИЯ ===================== -->
+    <div class="abstract">
+      <h2>Аннотация</h2>
+      <p>
+        Документ фиксирует математическую модель браузерного симулятора, в котором
+        ударные дроны самолётного типа прорываются к наземной цели, а антидроны-мультикоптеры
+        пытаются их перехватить. Описаны: порядок расчёта одного шага, две различные физические
+        модели движения, геометрия упреждающего перехвата, ограничения безопасности, словарь
+        аэродинамических манёвров и реализованный контур обучения с подкреплением (PPO с
+        обобщённой оценкой преимущества поверх неизменной физики).
+      </p>
+      <p>
+        Модель не является калибровкой конкретного комплекса. Её цель — воспроизводимо и
+        статистически проверять алгоритмы наведения и поведения, не смешивая логику принятия
+        решений с физикой движения. Все приведённые формулы соответствуют коду симулятора.
+      </p>
+      <p class="keywords">
+        <b>Ключевые слова:</b> перехват БПЛА, fixed-wing, мультикоптер, упреждение,
+        управление энергией, reinforcement learning, PPO, GAE, учебная программа.
+      </p>
+    </div>
+
+    <!-- ===================== ОГЛАВЛЕНИЕ ===================== -->
+    <nav class="toc" aria-label="Оглавление">
+      <h2>Содержание</h2>
+      <ol>
+        <li><a href="#intro">Введение</a>
+          <ol>
+            <li><a href="#intro-task">Постановка задачи</a></li>
+            <li><a href="#intro-bounds">Границы модели</a></li>
+            <li><a href="#intro-notation">Обозначения</a></li>
+          </ol>
+        </li>
+        <li><a href="#step">Архитектура шага симуляции</a></li>
+        <li><a href="#physics">Физическая модель движения</a>
+          <ol>
+            <li><a href="#ph-state">Состояние аппарата</a></li>
+            <li><a href="#ph-turn">Ограничение разворота</a></li>
+            <li><a href="#ph-speed">Минимальная скорость</a></li>
+            <li><a href="#ph-drone">Ударный дрон (fixed-wing)</a></li>
+            <li><a href="#ph-climb">Набор высоты дрона</a></li>
+            <li><a href="#ph-anti">Мультикоптер-антидрон</a></li>
+            <li><a href="#ph-lead">Упреждение перехвата</a></li>
+            <li><a href="#ph-events">События</a></li>
+          </ol>
+        </li>
+        <li><a href="#guidance">Наведение и поведение</a></li>
+        <li><a href="#safety">Ограничения безопасности</a></li>
+        <li><a href="#maneuvers">Аэродинамические манёвры</a>
+          <ol>
+            <li><a href="#mn-energy">Принцип: управление энергией</a></li>
+            <li><a href="#mn-drone">Манёвры ударного дрона</a></li>
+            <li><a href="#mn-anti">Манёвры антидрона</a></li>
+          </ol>
+        </li>
+        <li><a href="#rl">Обучение с подкреплением</a>
+          <ol>
+            <li><a href="#rl-mdp">Постановка задачи (MDP)</a></li>
+            <li><a href="#rl-obs">Пространство наблюдений</a></li>
+            <li><a href="#rl-act">Пространство действий</a></li>
+            <li><a href="#rl-policy">Политика и алгоритм PPO</a></li>
+            <li><a href="#rl-reward">Функция награды</a></li>
+            <li><a href="#rl-curriculum">Учебная программа и chain-training</a></li>
+          </ol>
+        </li>
+        <li><a href="#roadmap">Дорожная карта (Ф0–Ф4)</a></li>
+        <li><a href="#validation">Текущая проверка модели</a></li>
+        <li><a href="#limits">Оговорки и ограничения</a></li>
+      </ol>
+    </nav>
+
+    <!-- ===================== 1. ВВЕДЕНИЕ ===================== -->
+    <section id="intro">
+      <h2>Введение</h2>
+      <p class="lead">
+        Симулятор предназначен для проверки алгоритмов наведения в задаче «ударный дрон против
+        эшелонированной защиты». Сценарий разворачивается на квадратном поле 3000 × 3000 м с
+        видом сверху и высотным срезом; время дискретизировано шагом \(\Delta t = 0.02\) с.
+      </p>
+
+      <h3 class="sub" id="intro-task">Постановка задачи</h3>
+      <p>В одном эпизоде взаимодействуют четыре класса объектов:</p>
+      <ul>
+        <li><b>Ударные дроны</b> — летят к наземной цели, уклоняются от перехватчиков, при удобной геометрии выполняют набор и терминальное пикирование.</li>
+        <li><b>Антидроны</b> — стартуют по данным камер с задержкой, ведут цель в 3D и пытаются выполнить proximity-перехват.</li>
+        <li><b>Камеры</b> — наземные сенсоры с ограниченной дальностью и сектором; формируют обнаружение цели.</li>
+        <li><b>Цели</b> — защищаемые наземные точки; считаются поражёнными при выполнении условия удара.</li>
+      </ul>
+
+      <h3 class="sub" id="intro-bounds">Границы модели</h3>
+      <p>
+        Модель не претендует на точную аэродинамику конкретной платформы. Вместо этого она задаёт
+        набор инженерно полезных ограничений, которые делают поведение правдоподобным и
+        проверяемым:
+      </p>
+      <ol class="list">
+        <li>инерция и ограниченный радиус разворота, растущий со скоростью;</li>
+        <li>минимальная скорость (срыв/сваливание) для аппарата самолётного типа — он не умеет висеть;</li>
+        <li>конкуренция горизонтальной и вертикальной тяги у мультикоптера за общий энергетический бюджет;</li>
+        <li>задержка старта перехватчика, ограниченная дальность сенсоров и потеря визуального контакта;</li>
+        <li>высотные «полы» безопасности, отключаемые лишь в терминальной фазе.</li>
+      </ol>
+
+      <h3 class="sub" id="intro-notation">Обозначения</h3>
+      <p>Сквозные обозначения, используемые далее по тексту:</p>
+      <table>
+        <caption><b>Таблица 1.</b> Основные символы.</caption>
+        <thead><tr><th>Символ</th><th>Смысл</th><th>Символ</th><th>Смысл</th></tr></thead>
+        <tbody>
+          <tr><td class="sym">p = (x, y, z)</td><td>положение, м</td><td class="sym">ψ</td><td>курс в горизонтали, рад</td></tr>
+          <tr><td class="sym">v = (v_x, v_y, v_z)</td><td>скорость, м/с</td><td class="sym">v_H</td><td>горизонтальная скорость</td></tr>
+          <tr><td class="sym">v_stall</td><td>скорость сваливания дрона</td><td class="sym">v_cmd</td><td>командная скорость</td></tr>
+          <tr><td class="sym">ω</td><td>угловая скорость рыскания</td><td class="sym">a_lat,max</td><td>предел бокового ускорения</td></tr>
+          <tr><td class="sym">T</td><td>вектор тяги мультикоптера</td><td class="sym">g</td><td>ускорение свободного падения</td></tr>
+          <tr><td class="sym">t_lead</td><td>время упреждения</td><td class="sym">Δt</td><td>шаг интегрирования, 0.02 с</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===================== 2. ШАГ ===================== -->
+    <section id="step">
+      <h2>Архитектура шага симуляции</h2>
+      <p>
+        Ключевой принцип архитектуры — <b>строгое разделение решения и физики</b>. На каждом тике
+        выполняется фиксированная последовательность фаз, и физика интегрируется только после того,
+        как принято решение и проверена выполнимость манёвра:
+      </p>
+      <ol class="list">
+        <li><b>Сенсоры.</b> Камеры и антидрон формируют наблюдение цели (с учётом дальности, сектора и видимости).</li>
+        <li><b>Решение.</b> Политика (на правилах или обученная) выбирает режим, цель и целевую точку.</li>
+        <li><b>Прогноз.</b> Рассчитываются упреждение и выполнимость захода (хватит ли дистанции на набор и пике, запаса на разворот).</li>
+        <li><b>Физика.</b> Обновляются скорость, высота и положение в рамках динамических ограничений.</li>
+        <li><b>События.</b> Проверяются перехват, удар о землю и поражение цели.</li>
+      </ol>
+      <div class="note">
+        <span class="label">Инвариант</span>
+        Физика вызывается <b>после</b> выбора режима и прогноза. После интегрирования траектория не
+        корректируется задним числом — фиксируются только наступившие события. Это исключает
+        «подкручивание» результата под желаемый исход и делает прогоны воспроизводимыми по seed.
+      </div>
+    </section>
+
+    <!-- ===================== 3. ФИЗИКА ===================== -->
+    <section id="physics">
+      <h2>Физическая модель движения</h2>
+      <p>
+        Аппараты описываются двумя принципиально разными моделями. Ударный дрон — тяжёлый
+        <b>самолёт</b>: тяга направлена вперёд, висение невозможно, скорость не командуется ниже
+        скорости сваливания. Антидрон — лёгкий <b>мультикоптер</b>: может висеть, но горизонталь и
+        вертикаль делят общий вектор тяги.
+      </p>
+
+      <h3 class="sub" id="ph-state">Состояние аппарата</h3>
+      <p>Состояние каждого аппарата на шаге \(t\):</p>
+      <div class="eq">
+        \begin{align}
+          s_t &= (x,\,y,\,z,\,v_x,\,v_y,\,v_z,\,\psi,\,\text{mode}) \tag{1}\\
+          p_t &= (x,y,z),\quad v_t=(v_x,v_y,v_z) \tag{2}
+        \end{align}
+      </div>
+      <p>Здесь \(p_t\) и \(v_t\) — позиционная и скоростная подгруппы состояния (1); \(\psi\) — курс в горизонтальной плоскости, <code>mode</code> — текущий режим конечного автомата. Положение и скорость обновляются каждый тик с постоянным шагом интегрирования \(\Delta t = 0.02\) с (задаётся один раз для всей модели, см. табл. 1).</p>
+
+      <h3 class="sub" id="ph-turn">Ограничение разворота</h3>
+      <p>Разворот ограничен как актуатором, так и центростремительным ускорением:</p>
+      <div class="eq">
+        \begin{align}
+          v_H &= \sqrt{v_x^2 + v_y^2} \tag{3}\\
+          \omega_{\text{phys}} &= \frac{a_{\text{lat,max}}}{\max(v_H,\,\varepsilon)} \tag{4}\\
+          \omega_{\text{eff}} &= \min(\omega_{\text{act}},\,\omega_{\text{phys}}) \tag{5}\\
+          \psi_{t+\Delta t} &= \psi_t + \operatorname{clamp}\!\big(\Delta\psi,\,-\omega_{\text{eff}}\Delta t,\,\omega_{\text{eff}}\Delta t\big) \tag{6}
+        \end{align}
+      </div>
+      <p>Поскольку \(\omega_{\text{phys}}\) убывает со скоростью, радиус виража \(R = v_H^2/a_{\text{lat,max}}\) растёт — на высокой скорости траектория не может иметь мгновенный излом.</p>
+
+      <h3 class="sub" id="ph-speed">Минимальная скорость</h3>
+      <p>Командная скорость снижается в развороте, но не ниже сваливания:</p>
+      <div class="eq">
+        \begin{align}
+          \alpha &= \max\!\Big(k_{\min},\,\tfrac{1+\cos\Delta\psi}{2}\Big) \tag{7}\\
+          v_{\text{cmd}} &= \max(v_{\text{stall}},\,v_{\text{cruise}}\,\alpha) \tag{8}\\
+          k_{\min}^{\text{drone}} &= 0.65,\quad k_{\min}^{\text{anti}} = 0.18 \tag{9}
+        \end{align}
+      </div>
+      <p>Высокий \(k_{\min}\) у дрона запрещает ему «почти остановиться» в развороте; мультикоптеру разрешено снижать скорость существенно сильнее.</p>
+
+      <h3 class="sub" id="ph-drone">Ударный дрон (fixed-wing)</h3>
+      <p>Продольная динамика с квадратичным сопротивлением:</p>
+      <div class="eq">
+        \begin{align}
+          D(v_H) &= C_d\,v_H^2 / m \tag{10}\\
+          a_{\text{fwd}} &= \operatorname{clamp}\!\Big(\tfrac{v_{\text{cmd}}-v_H}{\tau},\,-a_{\text{brake}},\,a_{\text{forward}}\Big) - D(v_H) \tag{11}\\
+          v_{H,\,t+\Delta t} &= \operatorname{clamp}(v_{H,t} + a_{\text{fwd}}\Delta t,\,0,\,v_{\max}) \tag{12}
+        \end{align}
+      </div>
+      <p>Тяга только продольная; вертикальной тяги для висения у дрона нет.</p>
+
+      <h3 class="sub" id="ph-climb">Набор высоты дрона</h3>
+      <p>Доступный набор ограничен запасом скорости над сваливанием:</p>
+      <div class="eq">
+        \begin{align}
+          r_v &= \max(0,\,v_H - v_{\text{stall}}) \tag{13}\\
+          v_{z,\text{up}}^{\max} &= \min(v_{z}^{\max},\,r_v\,c_{\text{climb}}) \tag{14}\\
+          v_{z,\text{cmd}} &= \operatorname{clamp}\!\big(k_z(z_\ast - z) - d_z v_z,\,-v_z^{\max},\,v_{z,\text{up}}^{\max}\big) \tag{15}
+        \end{align}
+      </div>
+      <p>Чем меньше запас \(r_v\), тем меньше потолок скороподъёмности — энергию для набора неоткуда взять, кроме как из скорости.</p>
+
+      <h3 class="sub" id="ph-anti">Мультикоптер-антидрон</h3>
+      <p>Желаемое ускорение пересчитывается в вектор тяги с компенсацией силы тяжести и насыщением:</p>
+      <div class="eq">
+        \begin{align}
+          a_{\text{des}} &= (v_{\text{cmd}} - v)/\tau \tag{16}\\
+          T &= (a_{\text{des},x} - d_x,\; a_{\text{des},y} - d_y,\; a_{\text{des},z} + g) \tag{17}\\
+          T &\leftarrow T\cdot\min\!\Big(1,\,\tfrac{T_{\max}/m}{\lVert T\rVert}\Big) \tag{18}
+        \end{align}
+      </div>
+      <p>Насыщение (18) и есть тот «общий бюджет»: энергичный вертикальный манёвр отнимает горизонтальную составляющую, и наоборот.</p>
+
+      <h3 class="sub" id="ph-lead">Упреждение перехвата</h3>
+      <p>Антидрон решает задачу перехвата цели, движущейся с постоянной скоростью \(u\):</p>
+      <div class="eq">
+        \begin{align}
+          r &= p_{\text{target}} - p_{\text{anti}},\quad u = v_{\text{target}} \tag{19}\\
+          \lVert r + u\,t \rVert &= v_{\text{anti}}\,t \tag{20}\\
+          (u\!\cdot\!u - v_{\text{anti}}^2)\,t^2 &+ 2(r\!\cdot\!u)\,t + r\!\cdot\!r = 0 \tag{21}\\
+          t_{\text{lead}} &= \operatorname{clamp}(\text{мин. положит. корень},\,0,\,2.5) \tag{22}
+        \end{align}
+      </div>
+      <p>Если положительного корня нет, применяется запасной вариант по текущей 3D-дистанции.</p>
+
+      <h3 class="sub" id="ph-events">События</h3>
+      <p>После шага физики проверяются терминальные условия:</p>
+      <div class="eq">
+        \begin{align}
+          \text{intercept} &\iff \lVert p_{\text{drone}} - p_{\text{anti}} \rVert \lt 20\,\text{м} \tag{23}\\
+          \text{hit} &\iff \lVert p_{\text{drone}}^{xy} - p_{\text{target}}^{xy} \rVert \lt 25\,\text{м} \,\wedge\, z_{\text{drone}} \le 5\,\text{м} \tag{24}\\
+          \text{crash} &\iff z \lt 1\,\text{м} \tag{25}
+        \end{align}
+      </div>
+    </section>
+
+    <!-- ===================== 4. НАВЕДЕНИЕ ===================== -->
+    <section id="guidance">
+      <h2>Наведение и поведение</h2>
+      <h3 class="sub">Ударный дрон</h3>
+      <ul>
+        <li>До атаки идёт на маршевой высоте; при угрозе выбирает боковую точку уклонения и фиксирует высоту манёвра на весь его срок.</li>
+        <li>Перед набором и пикированием проверяет четыре условия: курс на цель, дистанцию на набор, дистанцию на пике и запас на разворот.</li>
+        <li>После входа в терминальную атаку уклонение и ретаргетинг отключаются — заход доводится до конца.</li>
+      </ul>
+      <h3 class="sub">Антидрон</h3>
+      <ul>
+        <li>Стартует после заданной задержки, выходит на последнюю известную позицию цели.</li>
+        <li>Решает задачу упреждения (ур. 19–22) по предположению о постоянной скорости цели.</li>
+        <li>При потере визуального контакта ведёт цель инерциально 3 с, затем поднимается на высоту поиска ≈ 45 м, чтобы не кружить на уровне мачт камер.</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 5. БЕЗОПАСНОСТЬ ===================== -->
+    <section id="safety">
+      <h2>Ограничения безопасности</h2>
+      <p>Набор «защитных полов» предотвращает деградацию сценария в нефизичные состояния:</p>
+      <table>
+        <caption><b>Таблица 2.</b> Ограничения и терминальные условия.</caption>
+        <thead><tr><th>Ограничение</th><th>Описание</th></tr></thead>
+        <tbody>
+          <tr><td>Высота земли</td><td>Активный аппарат ниже 1 м считается разбившимся (ур. 25).</td></tr>
+          <tr><td>Дрон</td><td>Мягкий пол 15 м действует до пикирования; в режиме пике защита отключается.</td></tr>
+          <tr><td>Антидрон</td><td>Барометрический контур держит целевую высоту не ниже 15 м, кроме терминальной фазы.</td></tr>
+          <tr><td>Поиск</td><td>После потери цели антидрон набирает ≈ 45 м, чтобы выйти из «слепой» зоны камер.</td></tr>
+          <tr><td>Перехват</td><td>Proximity-fuse срабатывает по 3D-дистанции менее 20 м (ур. 23).</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===================== 6. МАНЁВРЫ ===================== -->
+    <section id="maneuvers">
+      <h2>Аэродинамические манёвры</h2>
+      <p class="lead">
+        Манёвры — это целевые навыки, отрабатываемые <b>внутри уже описанной физики</b>. Они не
+        вводят новой динамики, а эксплуатируют её ограничения. Раздел адресован в первую очередь
+        лётной экспертизе: ниже — предлагаемый словарь манёвров и их физическая трактовка.
+      </p>
+
+      <h3 class="sub" id="mn-energy">Принцип: управление энергией</h3>
+      <p>
+        Полная механическая энергия аппарата \(E = \tfrac12 m v^2 + m g z\). Любой манёвр — это
+        управляемый переход между кинетической и потенциальной формами при соблюдении ограничений:
+      </p>
+      <ul>
+        <li><b>Ударный дрон не висит</b> и теряет управление ниже \(v_{\text{stall}}\) — поэтому набор высоты «оплачивается» скоростью (ур. 13–15), а разворот ограничен по радиусу (ур. 3–6).</li>
+        <li><b>Антидрон-мультикоптер</b> может зависать и имеет тяговооружённость \(\approx\!\times 3\), но энергичная вертикаль отнимает горизонталь из общего вектора тяги (ур. 16–18).</li>
+      </ul>
+
+      <h3 class="sub" id="mn-drone">Манёвры ударного дрона (fixed-wing)</h3>
+      <table>
+        <caption><b>Таблица 3.</b> Предложения по манёврам дрона.</caption>
+        <thead><tr><th>Манёвр</th><th>Суть и физика</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Пике (dive)</b><span class="key-tag">ключевой</span></td>
+            <td>Терминальная атака: размен высоты на скорость, крутое снижение на цель, энергичный выход. В режиме пике мягкий высотный пол отключается. Главный учебный навык (класс C04).</td>
+          </tr>
+          <tr>
+            <td><b>Горка / zoom climb</b></td>
+            <td>Размен скорости на высоту — баллистический набор, чтобы подняться над перехватчиком и затем войти в пике. Ограничен доступным набором (14): чем меньше запас \(v_H-v_{\text{stall}}\), тем меньше потолок скороподъёмности.</td>
+          </tr>
+          <tr>
+            <td><b>Break turn</b></td>
+            <td>Резкий разворот на пределе бокового ускорения для уклонения. Чтобы сузить радиус \(R=v_H^2/a_{\text{lat,max}}\), нужно притормозить — но не свалиться ниже \(v_{\text{stall}}\).</td>
+          </tr>
+          <tr>
+            <td><b>Змейка / jinking</b></td>
+            <td>Боковые S-рыскания, сбивающие упреждающее наведение: меняют \(v_{\text{target}}\), на которой строится решение перехвата (19–22).</td>
+          </tr>
+          <tr>
+            <td><b>Низковысотный заход</b></td>
+            <td>Полёт у пола (≈ 15 м) под конусами камер для снижения вероятности обнаружения; аэродинамически — удержание малой высоты без проседания в землю.</td>
+          </tr>
+          <tr>
+            <td><b>Pop-up атака</b></td>
+            <td>Комбинация: скрытный низковысотный заход → резкий набор → пике. Минимизирует окно обнаружения и время реакции перехватчика.</td>
+          </tr>
+          <tr>
+            <td><b>Управление энергией</b></td>
+            <td>Базовый навык поверх всех манёвров: держать \(v_H > v_{\text{stall}}\) и расходовать запас осознанно. Дрон не восстанавливается из сваливания висением.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 class="sub" id="mn-anti">Манёвры антидрона (multicopter)</h3>
+      <table>
+        <caption><b>Таблица 4.</b> Предложения по манёврам антидрона.</caption>
+        <thead><tr><th>Манёвр</th><th>Суть и физика</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Пике (dive)</b><span class="key-tag">ключевой</span></td>
+            <td>Резкое снижение на цель ниже: вертикальная тяга сбрасывается, аппарат разгоняется вниз под \(g\). Цена — арретирование снижения должно уложиться в бюджет тяги (17–18); в отличие от дрона, на выходе возможно зависание.</td>
+          </tr>
+          <tr>
+            <td><b>Вертикальный бросок на перехват</b></td>
+            <td>Быстрый вертикальный набор за счёт тяговооружённости \(\approx\!\times 3\), чтобы перехватить пикирующий дрон; просаживает горизонтальную составляющую (18).</td>
+          </tr>
+          <tr>
+            <td><b>Наведение на пикирующую цель</b></td>
+            <td>Самое сложное терминальное наведение: высокая скорость сближения плюс вертикальная составляющая скорости цели при её пике — решение упреждения (19–22) должно учитывать обе компоненты.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===================== 7. RL ===================== -->
+    <section id="rl">
+      <h2>Обучение с подкреплением</h2>
+      <p class="lead">
+        Поведение можно обучать вместо политики на правилах. ML-агент <b>не переписывает физику</b>:
+        он выдаёт смещение целевой точки, а все низкоуровневые ограничения остаются общими. Это
+        сохраняет сопоставимость политики на правилах и обученной политики на одинаковой физике.
+        Реализация — PPO с GAE на <code>@tensorflow/tfjs-node</code>; один обучающий процесс на узел программы.
+      </p>
+
+      <h3 class="sub" id="rl-mdp">Постановка задачи (MDP)</h3>
+      <p>
+        Задача формализована как марковский процесс принятия решений
+        \(\langle \mathcal S, \mathcal A, P, R, \gamma\rangle\) с непрерывным действием. Наблюдение
+        дрон-центрично и нормировано; действие — смещение waypoint, масштабируемое радиусом
+        обнаружения и потолком высоты:
+      </p>
+      <div class="eq">
+        \begin{align}
+          o_t &\in \mathbb R^{d},\quad a_t \in [-1,1]^{3} \tag{26}\\
+          \Delta x &= a_{t,1}\,R_{\text{det}},\;\; \Delta y = a_{t,2}\,R_{\text{det}},\;\; \Delta z = a_{t,3}\,z_{\max} \tag{27}
+        \end{align}
+      </div>
+
+      <h3 class="sub" id="rl-obs">Пространство наблюдений</h3>
+      <p>Дрон-центрический вектор собирается из четырёх групп признаков (все нормированы в \([-1,1]\)):</p>
+      <ul>
+        <li><b>Своё состояние:</b> положение, скорость, синус/косинус курса, относительное положение цели, флаг уклонения.</li>
+        <li><b>Антидроны:</b> ближайшие \(K\) перехватчиков (сортировка по 3D-дистанции) — относительное положение, скорость, статус и дистанция.</li>
+        <li><b>Цели:</b> относительное положение и признак поражения.</li>
+        <li><b>Глобальные параметры:</b> скорости сторон, дальности сенсоров, задержка старта, время эпизода.</li>
+      </ul>
+
+      <h3 class="sub" id="rl-act">Пространство действий</h3>
+      <p>
+        Непрерывное действие \(a_t\in[-1,1]^3\) — смещение целевой точки относительно текущей
+        проекции на цель. Так агент управляет геометрией захода, но не обходит физические лимиты
+        (минимальную скорость, радиус разворота, потолок набора).
+      </p>
+
+      <h3 class="sub" id="rl-policy">Политика и алгоритм PPO</h3>
+      <p>Стохастическая гауссова политика с обучаемым логарифмом стандартного отклонения:</p>
+      <div class="eq">
+        \begin{align}
+          a &\sim \pi_\theta(\cdot\mid o)=\mathcal N\!\big(\mu_\theta(o),\,\operatorname{diag}(\sigma^2)\big),\quad \sigma=e^{\log\sigma} \tag{28}\\
+          \log\pi_\theta(a\mid o) &= -\tfrac12\sum_i\Big(\tfrac{a_i-\mu_i}{\sigma_i}\Big)^2 - \sum_i\log\sigma_i - \tfrac{k}{2}\log 2\pi \tag{29}
+        \end{align}
+      </div>
+      <p>
+        Актёр — MLP \(d\!\to\!128\!\to\!64\!\to\!3\) (ReLU, выход \(\tanh\)); критик —
+        \(d\!\to\!64\!\to\!32\!\to\!1\); \(\log\sigma\) инициализируется \(-0.5\) (\(\sigma\approx 0.6\)).
+        Преимущество оценивается по GAE и нормируется по батчу:
+      </p>
+      <div class="eq">
+        \begin{align}
+          \delta_t &= r_t + \gamma\,V(s_{t+1}) - V(s_t) \tag{30}\\
+          \hat A_t &= \sum_{l\ge 0}(\gamma\lambda)^l\,\delta_{t+l},\qquad \hat R_t = \hat A_t + V(s_t) \tag{31}\\
+          \gamma &= 0.99,\quad \lambda = 0.95 \tag{32}
+        \end{align}
+      </div>
+      <p>Обновление — клиппированная суррогатная цель PPO с добавкой критика и бонусом энтропии:</p>
+      <div class="eq">
+        \begin{align}
+          \rho_t(\theta) &= \exp\!\big(\log\pi_\theta(a_t\mid o_t) - \log\pi_{\theta_{\text{old}}}(a_t\mid o_t)\big) \tag{33}\\
+          L^{\text{CLIP}} &= \mathbb E_t\!\Big[\min\!\big(\rho_t\hat A_t,\,\operatorname{clip}(\rho_t,1-\epsilon,1+\epsilon)\hat A_t\big)\Big] \tag{34}\\
+          L &= -L^{\text{CLIP}} + c_v\,\mathbb E_t\!\big[(V_\theta - \hat R_t)^2\big] - c_e\,\mathcal H[\pi_\theta] \tag{35}
+        \end{align}
+      </div>
+      <p>Гиперпараметры: \(\epsilon=0.2\), \(c_v=0.5\), \(c_e=0.01\), Adam \(\text{lr}=3\!\cdot\!10^{-4}\), 4 эпохи по мини-батчам 256.</p>
+
+      <h3 class="sub" id="rl-reward">Функция награды</h3>
+      <p>Плотный потенциальный shaping к цели и учебным точкам со штрафами за неэффективность и аварию:</p>
+      <div class="eq">
+        \begin{align}
+          r_t &= w_p\,\text{progress} + w_w\,\text{waypoint} + w_c\,\text{precision} \\
+              &\quad - w_a\,\text{altErr}\cdot\Delta t - w_t\,\Delta t - w_x\,\text{crash} \tag{36}\\
+          \text{progress} &= \sum_k \tfrac{d_k^{\text{prev}} - d_k^{\text{now}}}{100} \tag{37}
+        \end{align}
+      </div>
+      <p>Веса: \(w_p{=}1,\;w_w{=}2,\;w_c{=}1,\;w_a{=}0.05,\;w_t{=}0.01,\;w_x{=}5\). Качество эпизода оценивается относительно rule-based прогона на том же seed, а лучший чекпоинт выбирается по сглаженному композиту:</p>
+      <div class="eq">
+        \begin{align}
+          \Delta_{\text{ep}} &= R_{\text{RL}} - R_{\text{baseline}} \tag{38}\\
+          \text{score} &= \overline{R}^{\,\text{ema}} + 0.3\,\overline{\Delta}^{\,\text{ema}} \tag{39}\\
+          \overline{x}^{\,\text{ema}} &\leftarrow \alpha x + (1-\alpha)\,\overline{x}^{\,\text{ema}},\quad \alpha=0.25 \tag{40}
+        \end{align}
+      </div>
+      <p>Чекпоинт <code>best.json</code> обновляется при новом пике <span class="sym">score</span> после не менее чем трёх эпизодов прогрева.</p>
+
+      <h3 class="sub" id="rl-curriculum">Учебная программа и chain-training</h3>
+      <ul>
+        <li><b>Лётная школа (классы 1–4):</b> наведение в точку, инерция и пределы, ограниченный обзор, 2.5D-профиль высоты — без противника.</li>
+        <li><b>Боевой класс (5):</b> первая дуэль с уклонением и перехватом. Роли: дрон, антидрон, совместная.</li>
+        <li><b>Цепочка обучения:</b> при запуске целевой ноды топологически собираются все пустые узлы-предки и обучаются по порядку дерева.</li>
+        <li><b>Warm-start:</b> дочерний узел инициализируется весами \(\theta\) из <code>best.json</code> родителя — это ускоряет сходимость на следующем классе.</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 8. ДОРОЖНАЯ КАРТА ===================== -->
+    <section id="roadmap">
+      <h2>Дорожная карта обучения (Ф0–Ф4)</h2>
+      <p>
+        Обучение пересобирается под <b>единый per-agent контракт</b>: лётная школа C01–C04 учит
+        пилотировать (включая пике), затем — тактический бой C05+. Боевая фаза сознательно отложена
+        до устойчивой лётной школы.
+      </p>
+      <table>
+        <caption><b>Таблица 5.</b> Фазы работ и статус.</caption>
+        <thead><tr><th>Фаза</th><th>Статус</th><th>Содержание</th></tr></thead>
+        <tbody>
+          <tr><td><b>Фикс</b></td><td><span class="badge done">сделано</span></td><td>Лимит эпизодов 500 → 100000: нода рапортовала <code>completed</code> рано, цепочка перескакивала к следующей.</td></tr>
+          <tr><td><b>Ф0</b></td><td><span class="badge doing">в работе</span></td><td>Зафиксировать дизайн контракта: спека единого <code>obs/action</code> (список фич, K соседей), reward-схема, новая сетка классов.</td></tr>
+          <tr><td><b>Ф1</b></td><td><span class="badge plan">план</span></td><td>Модуль единого <code>obs/action</code> с фиксированной ego-centric размерностью; заменяет старые split-схемы; детерминизм по seed.</td></tr>
+          <tr><td><b>Ф2</b></td><td><span class="badge plan">план</span></td><td>Починить baseline антидрона; классы C01 (XY-точка), C02 (инерция/радиус), C04 (2.5D-профиль + пике, слияние C03), C04.5 (скриптовый антидрон — мост к уклонению).</td></tr>
+          <tr><td><b>Ф3</b></td><td><span class="badge plan">план</span></td><td>Мини-батч PPO (N эпизодов на апдейт — стабильнее и быстрее); per-class метрики и превью обученной модели в браузере.</td></tr>
+          <tr><td><b>Ф4</b></td><td><span class="badge hold">отложено</span></td><td>Класс C05+: командные obs/action, разреженная награда (+1 хит / 0 перехват-decoy / −0.5 таймаут), батч-PPO; выбор движка инференса (tfjs против Python+ONNX).</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===================== 9. ПРОВЕРКА ===================== -->
+    <section id="validation">
+      <h2>Текущая проверка модели</h2>
+      <p>Регрессионный прогон на дефолтных параметрах (статистика по 100 случайным сидам):</p>
+      <div class="metric-row">
+        <div class="m"><span>Сидов</span><b>100</b></div>
+        <div class="m"><span>Перехваты</span><b>369</b></div>
+        <div class="m"><span>Попадания</span><b>124</b></div>
+        <div class="m"><span>Падения</span><b>0 / 0</b></div>
+      </div>
+      <div class="note">
+        <span class="label">Интерпретация</span>
+        Минимальная горизонтальная скорость живого дрона в прогоне ≈ 34.9 м/с — самолётная модель
+        не допускает зависания. Эти цифры не являются калибровкой реального комплекса; это
+        регрессионная проверка текущей версии алгоритма.
+      </div>
+    </section>
+
+    <!-- ===================== 10. ОГОВОРКИ ===================== -->
+    <section id="limits">
+      <h2>Оговорки и ограничения</h2>
+      <ul>
+        <li>Документ — <b>черновик</b>; численные значения и веса соответствуют текущей версии кода и будут уточняться.</li>
+        <li>Аэродинамика упрощена до инженерных ограничений; точная модель конкретной платформы вне рамок.</li>
+        <li>Раздел обучения описывает реализованный контур; боевая фаза с разреженной наградой ещё не введена в работу (см. дорожную карту).</li>
+        <li>Раздел манёвров — <b>предложения</b> для лётной экспертизы; формулировки и приоритеты открыты к корректировке.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    Полигон-3D · технический отчёт (черновик) · формулы соответствуют коду симулятора
+  </footer>
+</body>
+</html>

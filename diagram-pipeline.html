@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <title>Пайплайн — Нейросетевая Платформа БПЛА</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0c10!important;color:#ccc;font-family:'Segoe UI',Arial,sans-serif;display:flex;flex-direction:column;align-items:center;padding:0;min-height:100vh}
+    .diagram-wrap{padding:20px;display:flex;flex-direction:column;align-items:center}
+    h1{font-size:16px;font-weight:700;color:#e8a830;text-transform:uppercase;letter-spacing:2px;margin-bottom:24px}
+
+.frame{border:2px solid rgba(91,163,232,0.25);border-radius:10px;padding:18px 20px;margin-bottom:24px;background:rgba(15,30,46,0.3);position:relative;max-width:900px;width:100%}
+.frame-title{position:absolute;top:-13px;left:20px;background:#0a0c10;padding:0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+.ft-infer{color:#5ba3e8}
+.ft-train{color:#e8a830}
+
+.flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+.node{border:2px solid;border-radius:7px;padding:10px 14px;text-align:center;background:rgba(0,0,0,0.25)}
+.node .label{font-size:12px;font-weight:700;line-height:1.3}
+.node .desc{font-size:9px;opacity:.65;margin-top:3px;line-height:1.2}
+.node .tech{font-size:8px;font-family:monospace;opacity:.4;margin-top:2px}
+
+.n-teal{border-color:#2980b9}.n-teal .label{color:#90cce0}
+.n-blue{border-color:#5ba3e8}.n-blue .label{color:#a0d4f7}
+.n-gold{border-color:#e8a830}.n-gold .label{color:#f0d8a0}
+.n-green{border-color:#4ecb71}.n-green .label{color:#a8f0c0}
+.n-red{border-color:#e04b4b}.n-red .label{color:#f0a8a8}
+
+.arrow{display:flex;align-items:center;justify-content:center;font-size:20px;color:#666;padding:0 6px;flex-shrink:0}
+.arrow-dn{width:3px;height:24px;background:#888;margin:0 auto;position:relative}
+.arrow-dn::after{content:'';display:block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #888;position:absolute;bottom:-8px;left:-4.5px}
+.arrow-dn-green{background:#4ecb71}.arrow-dn-green::after{border-top-color:#4ecb71}
+.arrow-dn-gold{background:#e8a830}.arrow-dn-gold::after{border-top-color:#e8a830}
+
+.deploy{display:flex;align-items:center;justify-content:center;gap:0;margin-top:20px;flex-wrap:wrap}
+.darr{display:flex;align-items:center;justify-content:center;font-size:16px;color:#555;padding:0 5px;flex-shrink:0}
+</style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a class="active" href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+
+  <h1 style="margin-top:60px">Пайплайн нейросетевой платформы БПЛА</h1>
+
+<!-- ═══ ИНФЕРЕНС ═══ -->
+<div class="frame">
+  <div class="frame-title ft-infer">Система управления БПЛА с ИИ (Инференс)</div>
+  <div class="flow">
+    <div class="node n-teal" style="width:120px">
+      <div class="label">Сенсоры</div>
+      <div class="tech">Камера, LiDAR, IMU</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-blue" style="width:140px">
+      <div class="label">Восприятие</div>
+      <div class="desc">CNN / Transformer + SLAM</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-blue" style="width:140px">
+      <div class="label">Принятие решений</div>
+      <div class="desc">Policy Network</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-blue" style="width:140px">
+      <div class="label">Низкоуровневое<br>управление</div>
+      <div class="desc">PID / Адаптивный</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-red" style="width:110px">
+      <div class="label">Действие</div>
+      <div class="tech">Моторы, рули</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ТРЕНИРОВКА ═══ -->
+<div class="frame">
+  <div class="frame-title ft-train">Обучение ИИ для БПЛА (Тренировка)</div>
+  <div class="flow">
+    <div class="node n-green" style="width:120px">
+      <div class="label">Симулятор</div>
+      <div class="tech">AirSim · Gazebo</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-gold" style="width:120px">
+      <div class="label">Агент</div>
+      <div class="desc">Политика</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-gold" style="width:150px">
+      <div class="label">Функция награды R</div>
+      <div class="tech">progress + vzStab + ...</div>
+    </div>
+  </div>
+
+  <div class="flow" style="margin-top:10px">
+    <div style="width:120px"></div>
+    <div style="width:26px"></div>
+    <div class="arrow-dn arrow-dn-gold" style="margin-top:8px"></div>
+  </div>
+
+  <div class="flow" style="margin-top:10px">
+    <div style="width:120px"></div>
+    <div style="width:26px"></div>
+    <div class="node n-gold" style="width:150px">
+      <div class="label">Алгоритм обучения</div>
+      <div class="desc">PPO / SAC / IL</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node n-green" style="width:150px">
+      <div class="label">Обновлённые веса</div>
+      <div class="desc">Новая политика</div>
+    </div>
+  </div>
+
+  <div class="flow" style="margin-top:10px">
+    <div style="width:340px"></div>
+    <div class="arrow-dn arrow-dn-green"></div>
+  </div>
+
+  <!-- Деплой -->
+  <div class="deploy">
+    <div class="node n-gold" style="width:150px">
+      <div class="label">Domain Randomization</div>
+      <div class="tech">виртуальный → реальный</div>
+    </div>
+    <div class="darr">→</div>
+    <div class="node n-gold" style="width:140px">
+      <div class="label">Квантование</div>
+      <div class="tech">Float → Int8</div>
+    </div>
+    <div class="darr">→</div>
+    <div class="node n-green" style="width:160px">
+      <div class="label">Перенос на борт</div>
+      <div class="tech">NVIDIA Jetson / NPU</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ СПЕЦИАЛИСТЫ ═══ -->
+<div class="frame">
+  <div class="frame-title ft-infer">Профессии и специалисты</div>
+
+  <!-- Ряд 1: Обучение -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;color:#4ecb71;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Обучение ИИ</div>
+    <div class="flow">
+      <div class="node n-green" style="width:150px">
+        <div class="label">ML-инженер</div>
+        <div class="desc">PPO/SAC, награда, веса</div>
+        <div class="tech">обучение политики</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node n-green" style="width:150px">
+        <div class="label">Инженер симуляций</div>
+        <div class="desc">AirSim, Gazebo, физика</div>
+        <div class="tech">виртуальный полигон</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node n-green" style="width:150px">
+        <div class="label">Инженер данных</div>
+        <div class="desc">телеметрия, логи</div>
+        <div class="tech">анализ полётов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Стрелка вниз -->
+  <div style="display:flex;margin:4px 0 4px 160px">
+    <div class="arrow-dn" style="background:#e8a830"></div>
+  </div>
+
+  <!-- Ряд 2: Тренажёрные испытания -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;color:#e8a830;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Цифровой полигон</div>
+    <div class="flow">
+      <div class="node n-gold" style="width:150px">
+        <div class="label">Тест-пилот</div>
+        <div class="desc">виртуальные тренировки</div>
+        <div class="tech">HIL, Software-in-the-Loop</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node n-gold" style="width:150px">
+        <div class="label">Инженер по телеметрии</div>
+        <div class="desc">запись данных, журналы</div>
+        <div class="tech">5000 Гц, расшифровка</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node n-gold" style="width:150px">
+        <div class="label">Embedded-инженер</div>
+        <div class="desc">Jetson, RPi, NPU</div>
+        <div class="tech">port, оптимизация</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Стрелка вниз -->
+  <div style="display:flex;margin:4px 0 4px 160px">
+    <div class="arrow-dn" style="background:#e04b4b"></div>
+  </div>
+
+  <!-- Ряд 3: Натурные испытания -->
+  <div>
+    <div style="font-size:10px;font-weight:700;color:#e04b4b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Реальный полигон</div>
+    <div class="flow">
+      <div class="node n-red" style="width:150px">
+        <div class="label">Пилот-испытатель</div>
+        <div class="desc">Safety, пульт, ручной режим</div>
+        <div class="tech">аварийный стоп</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node n-red" style="width:150px">
+        <div class="label">Инженер безопасности</div>
+        <div class="desc">JMAV, GEO-зона</div>
+        <div class="tech">нормативы, допуски</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node n-red" style="width:150px">
+        <div class="label">Аналитик испытаний</div>
+        <div class="desc">чёрные ящики, отчёт</div>
+        <div class="tech">post-flight analysis</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

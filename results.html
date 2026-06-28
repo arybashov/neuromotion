@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <script src="/auth-gate.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Обученные модели — Полигон 3D</title>
+  <style>
+    :root { --accent:#8a9bff; --bg:#0a0a0a; --panel:#111; --line:rgba(138,155,255,.25); --muted:#888; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:#eee; font-family:system-ui,-apple-system,sans-serif; }
+    .top-nav { display:flex; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); font:600 12px/1 system-ui; flex-wrap:wrap; }
+    .top-nav a { color:#aaa; text-decoration:none; }
+    .top-nav a:hover, .top-nav a.active { color:var(--accent); }
+    .wrap { max-width:1000px; margin:0 auto; padding:28px 18px 60px; }
+    h1 { font:700 20px system-ui; letter-spacing:.04em; }
+    .sub { color:var(--muted); font-size:13px; margin-bottom:24px; }
+    .cls { margin:26px 0 8px; font:700 13px system-ui; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+    .card { display:block; padding:14px; border:1px solid var(--line); border-radius:8px; background:var(--panel);
+            text-decoration:none; color:#eee; transition:border-color .15s, transform .1s; }
+    .card:hover { border-color:var(--accent); transform:translateY(-2px); }
+    .card .lesson { font:700 14px system-ui; }
+    .card .score { color:var(--muted); font-size:12px; margin-top:6px; }
+    .empty { color:var(--muted); font-size:14px; padding:30px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a class="active" href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+  <div class="wrap">
+    <h1>Обученные модели — лётная школа</h1>
+    <div class="sub">Живой инференс обученной нейросети прямо в браузере. Выберите урок — откроется полёт обученного дрона.</div>
+    <div id="content"><div class="empty">Загрузка…</div></div>
+  </div>
+  <script>
+    var CLASS_NAMES = { 1:'Класс 1 — Точка', 2:'Класс 2 — Инерция и пределы', 3:'Класс 3 — Ограниченный обзор', 4:'Класс 4 — Профиль высоты' };
+    fetch('results/index.json')
+      .then(function(r){ if(!r.ok) throw new Error('no index'); return r.json(); })
+      .then(function(data){
+        var lessons = (data && data.lessons) || [];
+        var el = document.getElementById('content');
+        if (!lessons.length) { el.innerHTML = '<div class="empty">Пока нет обученных моделей.</div>'; return; }
+        var byCls = {};
+        lessons.forEach(function(L){ (byCls[L.class] = byCls[L.class] || []).push(L); });
+        var html = '';
+        Object.keys(byCls).sort().forEach(function(c){
+          html += '<div class="cls">' + (CLASS_NAMES[c] || ('Класс ' + c)) + '</div><div class="grid">';
+          byCls[c].forEach(function(L){
+            var score = (L.bestScore != null) ? ('score ' + Number(L.bestScore).toFixed(0)) : '';
+            html += '<a class="card" href="Split-view.html?node=' + encodeURIComponent(L.key) + '">' +
+                    '<div class="lesson">Урок ' + (L.lessonIdx + 1) + '</div>' +
+                    '<div class="score">' + score + '</div></a>';
+          });
+          html += '</div>';
+        });
+        el.innerHTML = html;
+      })
+      .catch(function(){ document.getElementById('content').innerHTML = '<div class="empty">Витрина ещё не сформирована (нет results/index.json).</div>'; });
+  </script>
+</body>
+</html>

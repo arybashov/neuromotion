@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Обучение агентов — Полигон 3D</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0e0e10; color: #ccc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+      font-size: 13px;
+    }
+    header {
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 16px; color: #eee; font-weight: 600; margin-bottom: 4px; }
+    .body { display: flex; flex: 1; overflow: hidden; }
+    .center-detail {
+      flex: 1; overflow-y: auto; padding: 16px 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .cd-header {
+      font: 700 13px/1.3 Rajdhani, sans-serif; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #4ecb71; margin-bottom: 6px;
+    }
+    .cd-lesson {
+      width: 100%; max-width: 520px;
+      padding: 10px 14px; border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      font: 500 12px/1.3 Rajdhani, sans-serif; color: #aaa;
+      cursor: pointer; transition: 0.12s;
+      display: flex; align-items: center; flex-wrap: wrap;
+    }
+    .cd-lesson:hover { background: rgba(255,255,255,0.06); }
+    .cd-lesson.active { border-color: #ddd; color: #ddd; }
+    .cd-lesson.c0 { border-color:rgba(91,163,232,0.3); border-left-color:#5ba3e8; } .cd-lesson.c0.active { border-color:#5ba3e8; background:rgba(91,163,232,0.08); }
+    .cd-lesson.c1 { border-color:rgba(78,203,113,0.3); border-left-color:#4ecb71; } .cd-lesson.c1.active { border-color:#4ecb71; background:rgba(78,203,113,0.08); }
+    .cd-lesson.c2 { border-color:rgba(232,168,48,0.3); border-left-color:#e8a830; } .cd-lesson.c2.active { border-color:#e8a830; background:rgba(232,168,48,0.08); }
+    .cd-lesson.c3 { border-color:rgba(232,122,91,0.3); border-left-color:#e87a5b; } .cd-lesson.c3.active { border-color:#e87a5b; background:rgba(232,122,91,0.08); }
+    .cd-lesson.c4 { border-color:rgba(154,143,224,0.3); border-left-color:#9a8fe0; } .cd-lesson.c4.active { border-color:#9a8fe0; background:rgba(154,143,224,0.08); }
+    .cd-lesson .cd-num { font-weight: 700; color: #4ecb71; margin-right: 6px; }
+    .cd-lesson.active .cd-num { color: #5ba3e8; }
+    .cd-lesson .cd-dot { margin-left: 6px; }
+    .cd-lesson .cd-bar { display: block; width: 100%; height: 2px; border-radius: 2px; margin-top: 6px; background: rgba(255,255,255,0.05); overflow: hidden; }
+    .cd-lesson .cd-bar-fill { display: block; height: 100%; border-radius: 2px; background: #e8a830; transition: width 0.3s; }
+    .cd-tpl-ind {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: transparent; margin-right: 8px; vertical-align: middle;
+      flex-shrink: 0; transition: 0.2s;
+    }
+    .cd-tpl-ind.lit {
+      background: #4ecb71;
+      border-color: #4ecb71;
+      box-shadow: 0 0 5px rgba(78,203,113,0.6);
+    }
+    .cd-template-row {
+      display: flex; gap: 6px; margin-top: 6px; width: 100%; max-width: 520px;
+    }
+    .cd-tpl-btn {
+      flex: 1; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: #aaa; cursor: pointer;
+      font: 600 11px/1 Rajdhani, sans-serif; transition: 0.15s;
+    }
+    .cd-tpl-btn:hover { background: rgba(255,255,255,0.1); color: #eee; }
+    .cd-tpl-btn.dl { border-color: rgba(91,163,232,0.3); }
+    .cd-tpl-btn.dl:hover { border-color: #5ba3e8; }
+    .cd-tpl-btn.ul { border-color: rgba(78,203,113,0.3); }
+    .cd-tpl-btn.ul:hover { border-color: #4ecb71; }
+    .cd-tpl-btn.rst { border-color: rgba(232,122,91,0.3); }
+    .cd-tpl-btn.rst:hover { border-color: #e87a5b; }
+
+    .left-panel {
+      width: calc(220px + 6cm); flex-shrink: 0;
+      background: #0b0b0d;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 7px;
+      margin: 10px 12px 4px; padding: 7px 10px;
+      background: rgba(232,168,48,0.08); border: 1px solid rgba(232,168,48,0.35);
+      color: #e8a830; font-size: 12px; cursor: pointer; border-radius: 4px;
+      text-decoration: none; transition: color 0.12s, border-color 0.12s;
+      font-family: inherit;
+    }
+    .back-btn:hover { color: #f0c040; border-color: rgba(232,168,48,0.6); }
+    .back-btn-arrow { font-size: 14px; }
+    .header-back-btn {
+      display: inline-block; margin: 0; padding: 5px 12px;
+      width: 220px; flex-shrink: 0;
+      background: rgba(232,168,48,0.08); border: 1px solid rgba(232,168,48,0.35);
+      color: #e8a830; font-size: 11px; cursor: pointer; border-radius: 4px;
+      text-decoration: none; transition: color 0.12s, border-color 0.12s;
+      font-family: inherit; text-align: center;
+    }
+    .header-back-btn:hover { color: #f0c040; border-color: rgba(232,168,48,0.6); }
+    .header-top {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 4px; padding-left: 7cm;
+    }
+    .header-top h1 { margin-bottom: 0; flex: 1; }
+
+    /* ── LEFT PANEL: classes ── */
+    .panel-section.classes-section { flex: 1; overflow-y: auto; direction: rtl; }
+    .panel-section.classes-section > * { direction: ltr; }
+    .panel-title {
+      font: 700 13px/1.3 Rajdhani, sans-serif; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #eee; padding: 12px 14px 8px;
+    }
+    .class-item {
+      padding: 8px 14px; cursor: pointer;
+      border-top: 3px solid transparent;
+      transition: background 0.12s;
+    }
+    .class-item:hover { background: rgba(255,255,255,0.04); }
+    .class-item.active { background: rgba(255,255,255,0.05); }
+    .class-item.disabled { opacity: 0.3; pointer-events: none; }
+    .class-item-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 11px; font-weight: 500; color: #bbb; margin-bottom: 2px;
+    }
+    .class-item.active .class-item-name { color: #eee; }
+    .class-item-desc { font-size: 11px; color: #555; line-height: 1.4; }
+    .class-item.active .class-item-desc { color: #777; }
+    .class-item .class-badge {
+      display: inline-block;
+      font-size: 9px; font-family: "SF Mono", monospace;
+      color: #5ba3e8; border: 1px solid rgba(91,163,232,0.3);
+      border-radius: 3px; padding: 1px 6px; margin-right: 4px;
+    }
+    .cls-branch-btns {
+      display: flex; gap: 4px; margin-top: 6px;
+    }
+    .cls-branch-btn {
+      flex: 1; min-width: 0;
+      padding: 3px 2px;
+      font: 700 9px/1.2 Rajdhani, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 3px;
+      background: transparent; color: rgba(255,255,255,0.35);
+      cursor: pointer; transition: 0.12s;
+    }
+    .cls-branch-btn:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+    .cls-branch-btn.drone.active { border-color: #e8a830; color: #e8a830; background: rgba(232,168,48,0.1); }
+    .cls-branch-btn.anti.active { border-color: #5ba3e8; color: #5ba3e8; background: rgba(91,163,232,0.1); }
+    .cls-branch-btn.joint.active { border-color: #4ecb71; color: #4ecb71; background: rgba(78,203,113,0.1); }
+
+    /* ── RIGHT PANEL: lessons + training controls ── */
+    .right-panel {
+      width: 554px; flex-shrink: 0;
+      background: #0b0b0d;
+      border-left: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .right-scroll { flex: 1; overflow-y: auto; }
+
+    .lesson-item {
+      display: flex; gap: 10px; padding: 8px 14px;
+      border-top: 3px solid transparent;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer; transition: background 0.12s;
+    }
+    .lesson-item:hover { background: rgba(255,255,255,0.03); }
+    .lesson-item.active { background: rgba(255,255,255,0.06); }
+    .lesson-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+      background: rgba(255,255,255,0.1); color: #888;
+    }
+    .lesson-item.active .lesson-num { background: rgba(91,163,232,0.25); color: #5ba3e8; }
+    .lesson-body { flex: 1; min-width: 0; }
+    .lesson-title {
+      font-size: 11px; font-family: "SF Mono", "Fira Code", monospace;
+      color: #888; margin-bottom: 2px;
+    }
+    .lesson-item.active .lesson-title { color: #ccc; }
+    .lesson-desc { font-size: 10px; color: #555; line-height: 1.35; margin-bottom: 4px; }
+    .lesson-item.active .lesson-desc { color: #777; }
+    .polygon-link { display: inline-block; font-size: 10px; color: #e8a830; text-decoration: none; margin-top: 3px; border: 1px solid rgba(232,168,48,0.3); border-radius: 3px; padding: 1px 8px; font-family: "SF Mono","Fira Code",monospace; transition: all 0.12s; }
+    .polygon-link:hover { background: rgba(232,168,48,0.1); border-color: #e8a830; }
+    .lessons-empty { padding: 20px 14px; font-size: 11px; color: #444; text-align: center; }
+
+    .lesson-tabs { display: flex; margin-bottom: 0; }
+    .lesson-tab {
+      flex: 1; text-align: center; padding: 8px 0; position: relative;
+      font: 700 12px/1.2 "SF Mono", monospace; color: #555;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-bottom: none; border-radius: 5px 5px 0 0; cursor: pointer;
+      transition: all 0.12s; margin-right: -1px;
+    }
+    .lesson-tab:last-child { margin-right: 0; }
+    .lesson-tab:hover { color: #999; background: rgba(255,255,255,0.05); }
+    .lesson-tab.active { color: #fff; z-index: 1; }
+    .lesson-tab.c0 { border-color: rgba(91,163,232,0.3); border-top:2px solid #5ba3e8; } .lesson-tab.c0.active { background: rgba(91,163,232,0.25); }
+    .lesson-tab.c1 { border-color: rgba(78,203,113,0.3); border-top:2px solid #4ecb71; } .lesson-tab.c1.active { background: rgba(78,203,113,0.25); }
+    .lesson-tab.c2 { border-color: rgba(232,168,48,0.3); border-top:2px solid #e8a830; } .lesson-tab.c2.active { background: rgba(232,168,48,0.25); }
+    .lesson-tab.c3 { border-color: rgba(232,122,91,0.3); border-top:2px solid #e87a5b; } .lesson-tab.c3.active { background: rgba(232,122,91,0.25); }
+    .lesson-tab.c4 { border-color: rgba(154,143,224,0.3); border-top:2px solid #9a8fe0; } .lesson-tab.c4.active { background: rgba(154,143,224,0.25); }
+    .lesson-tab.has-template { border-top-width: 3px; }
+    .lesson-content {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(91,163,232,0.3);
+      border-radius: 0 0 4px 4px; padding: 12px 14px; min-height: 180px;
+      font: 400 11px/1.5 "SF Mono", monospace; color: #999; white-space: pre-wrap;
+      column-count: 2; column-gap: 20px;
+    }
+    .tpl-header { color: #e8a830; font-weight: 700; text-transform: uppercase; }
+    .tpl-edit {
+      font: inherit; color: #fff; background: rgba(91,163,232,0.10);
+      border: 1px solid rgba(91,163,232,0.35); border-radius: 3px;
+      padding: 0 4px; width: 64px; margin: 1px 0; text-align: right;
+      -moz-appearance: textfield;
+    }
+    .tpl-edit:hover { border-color: rgba(91,163,232,0.6); }
+    .tpl-edit:focus { outline: none; border-color: #5ba3e8; background: rgba(91,163,232,0.18); color: #fff; }
+    .tpl-sel { width: auto; text-align: left; }
+    .tpl-sel option { background: #1a1d24; color: #fff; }
+
+    /* ── Training controls ── */
+    .ctrl-section {
+      padding: 10px 14px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .ctrl-section h3 {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+      color: #eee; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .branch-selector {
+      display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .branch-btn {
+      flex: 1; padding: 6px 8px; font-size: 10px; font-family: "SF Mono", monospace;
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+      background: transparent; color: #888; cursor: pointer; text-align: center;
+      transition: all 0.12s;
+    }
+    .branch-btn.drone:hover { border-color: #5ba3e8; color: #5ba3e8; }
+    .branch-btn.anti:hover { border-color: #e04b4b; color: #e04b4b; }
+    .branch-btn.active.drone { background: rgba(91,163,232,0.12); border-color: #5ba3e8; color: #5ba3e8; }
+    .branch-btn.active.anti { background: rgba(224,75,75,0.12); border-color: #e04b4b; color: #e04b4b; }
+    .branch-btn.joint { border-color: rgba(78,203,113,0.3); color: #4ecb71; background: rgba(78,203,113,0.08); pointer-events:none; }
+    .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .ctrl-label { font-size: 10px; color: #666; display: flex; flex-direction: column; gap: 3px; }
+    .ctrl-label input[type=number] {
+      width: 100%; background: #0e0e10; color: #ccc;
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;
+      padding: 4px 6px; font-size: 11px; font-family: "SF Mono", monospace;
+    }
+    .weight-grid { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px; }
+    .weight-row {
+      display: grid; grid-template-columns: 50px 1fr 36px;
+      align-items: center; gap: 6px; font-size: 10px; color: #666;
+    }
+    .weight-row span:last-child { text-align: right; color: #aaa; font-family: "SF Mono", monospace; }
+    .weight-row input[type=range] {
+      width: 100%; height: 2px; appearance: none; background: rgba(255,255,255,0.12);
+      outline: none; border-radius: 1px;
+    }
+    .weight-row input[type=range]::-webkit-slider-thumb {
+      appearance: none; width: 10px; height: 10px; border-radius: 50%;
+      background: #4ecb71; cursor: pointer;
+    }
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+    .metric-cell { background: rgba(255,255,255,0.03); border-radius: 3px; padding: 4px 6px; text-align: center; }
+    .metric-cell b { display: block; font-size: 13px; color: #eee; font-weight: 500; }
+    .metric-cell span { font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-row { display: flex; gap: 8px; font-size: 10px; color: #666; padding: 2px 0; }
+    .metric-row b { color: #aaa; font-weight: 400; margin-left: auto; font-family: "SF Mono", monospace; }
+    .btn-row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+    .btn-row button {
+      flex: 1; padding: 7px 6px; font-size: 9px; font-family: "SF Mono", monospace;
+      letter-spacing: 0.5px; text-transform: uppercase; border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #aaa;
+      cursor: pointer; transition: all 0.12s; min-width: 60px;
+    }
+    .btn-row button:hover { border-color: rgba(255,255,255,0.3); color: #ddd; }
+    .btn-row button:disabled { opacity: 0.35; cursor: default; }
+    .btn-row button.primary { border-color: #4ecb71; color: #4ecb71; }
+    .btn-row button.primary:hover { background: rgba(78,203,113,0.08); }
+    .btn-row button.danger { border-color: #e04b4b; color: #e04b4b; }
+    .btn-row button.danger:hover { background: rgba(224,75,75,0.08); }
+    .btn-row button.warn { border-color: #e8a830; color: #e8a830; }
+    .btn-row button.warn:hover { background: rgba(232,168,48,0.08); }
+    .status-bar {
+      font-size: 10px; color: #666; font-family: "SF Mono", monospace;
+      padding: 6px 0;
+    }
+    .status-bar b { color: #4ecb71; font-weight: 400; }
+    .checkpoint-row { font-size: 10px; color: #666; display: flex; gap: 8px; padding: 2px 0; font-family: "SF Mono", monospace; }
+    .checkpoint-row b { color: #5ba3e8; font-weight: 400; }
+
+    /* ── TXT template buttons ── */
+    .template-row {
+      display: flex; gap: 4px; margin-top: 6px;
+    }
+    .template-row button {
+      flex: 1; padding: 4px 6px; font-size: 9px; font-family: "SF Mono", monospace;
+      border: 1px dashed rgba(255,255,255,0.12); border-radius: 3px;
+      background: transparent; color: #666; cursor: pointer; transition: all 0.12s;
+    }
+    .template-row button:hover { border-color: rgba(255,255,255,0.25); color: #999; }
+    .template-row button.dl:hover { border-color: #5ba3e8; color: #5ba3e8; }
+    .template-row button.ul:hover { border-color: #4ecb71; color: #4ecb71; }
+    .template-row button.rst:hover { border-color: #e8a830; color: #e8a830; }
+    #templateUpload { display: none; }
+    .template-note { font-size: 9px; color: #444; margin-top: 3px; }
+
+    /* ── SVG Schematic ── */
+    .schema-container {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .schema-svg { width: 100%; height: auto; }
+    .schema-title { font-size: 13px; font-weight: 600; fill: #ddd; }
+    .schema-sub { font-size: 11px; fill: #666; }
+    .schema-box { stroke-width: 1.5; rx: 6; ry: 6; }
+    .schema-box-label {
+      font-size: 10px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #ccc; text-anchor: middle;
+    }
+    .schema-box-sub {
+      font-size: 9px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #666; text-anchor: middle;
+    }
+    .schema-lesson {
+      stroke-width: 1.2; rx: 4; ry: 4;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .schema-lesson:hover { opacity: 0.8; }
+    .schema-lesson.active { stroke-width: 2; }
+    .schema-lesson-label {
+      font-size: 8px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #999; text-anchor: middle;
+    }
+    .schema-arrow { stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+    .class-path { stroke-width: 2; fill: none; stroke-dasharray: 6 3; }
+
+    /* ── Banner ── */
+    .banner-2d {
+      background: rgba(91,163,232,0.06);
+      border-top: 1px solid rgba(91,163,232,0.2);
+      border-bottom: 1px solid rgba(91,163,232,0.2);
+      padding: 6px 12px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .info-row {
+      display: flex; gap: 1px; background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .info-block {
+      flex: 1; width: 50%;
+      padding: 10px 16px;
+      background: #0b0b0d;
+    }
+    .info-title {
+      font: 600 10px/1.3 Rajdhani, sans-serif; text-transform: uppercase;
+      letter-spacing: 1.2px; color: rgba(255,255,255,0.35);
+      margin-bottom: 6px;
+    }
+    .info-content { font: 500 12px/1.4 Rajdhani, sans-serif; color: #aaa; }
+    .prog-bar {
+      width: 100%; height: 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 5px; overflow: hidden; margin-bottom: 6px;
+    }
+    .prog-fill {
+      height: 100%; border-radius: 5px; transition: width 0.4s;
+      background: linear-gradient(90deg, #5ba3e8, #7b6fe0, #9a8fe0);
+    }
+    .prog-text { font-size: 11px; }
+    .chip-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip-grid .chip {
+      font-size: 9px; font-family: "SF Mono", "Fira Code", monospace;
+      color: #999; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .chip-grid .chip b { color: #e8a830; }
+    .agent-chip.active { border-color: rgba(255,0,0,0.7) !important; color: #f33 !important; background: rgba(255,0,0,0.12) !important; }
+    .agent-chip.active b { color: #f33 !important; }
+    .agent-chip { padding: 6px 0 !important; }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="home" href="index.html">Главная</a>
+  <a href="agents.html">Агенты</a>
+  <a href="agent-packages.html">ПИД АГЕНТ</a>
+  <a href="curriculum.html">Программа</a>
+  <a class="active" href="agent-training.html">2D Тренинг</a>
+  <a href="agent-training-3d.html">3D Тренинг</a>
+  <a href="Poligon.html">Полигон</a>
+  <a href="simulator.html">Демонстратор</a>
+  <a href="UTC.html">УТЦ</a>
+  <a href="diagram-pipeline.html">Пайплайн</a>
+  <a href="training.html">Обучение</a>
+  <a href="results.html">Модели</a>
+  <a href="paperplane.html">PaperPlane</a>
+  <a href="trials.html">Испытания</a>
+  <a href="licenses.html">Лицензия</a>
+</nav>
+
+<header>
+    <a class="back-btn header-back-btn" href="training.html">
+      <span class="back-btn-arrow">←</span> Программа RL
+    </a>
+  <div class="header-top">
+    <h1>2D Обучение агента — программа 10 классов</h1>
+  </div>
+</header>
+  <div class="banner-2d" id="bannerSchema"></div>
+  <div class="info-row">
+    <div class="info-block info-progress">
+      <div class="info-title">Прогресс обучения</div>
+      <div class="info-content" id="progressContent">← Выберите класс</div>
+    </div>
+    <div class="info-block info-chips">
+      <div class="info-title">Агенты</div>
+      <div class="chip-grid" id="agentChips" style="display:flex;gap:6px">
+        <span class="chip agent-chip" data-agent="drone" style="flex:1;text-align:center;cursor:pointer;border-color:rgba(232,168,48,0.4);color:#e8a830"><b>Дрон</b></span>
+        <span class="chip agent-chip" data-agent="anti" style="flex:1;text-align:center;cursor:pointer;border-color:rgba(91,163,232,0.4);color:#5ba3e8"><b>Антидрон</b></span>
+        <span class="chip agent-chip" data-agent="joint" style="flex:1;text-align:center;cursor:pointer;border-color:rgba(78,203,113,0.4);color:#4ecb71"><b>Совместно</b></span>
+      </div>
+    </div>
+  </div>
+<div class="body">
+  <div class="left-panel">
+    <div class="panel-section classes-section">
+      <div class="panel-title">Классы</div>
+      <div id="classesList"></div>
+    </div>
+  </div>
+
+  <div class="center-detail" id="centerDetail"></div>
+
+  <div class="right-panel">
+    <div class="right-scroll">
+      <div class="panel-title">ТЕМАТИКА ТРЕНИРОВКИ</div>
+      <div id="lessonsList"><div class="lessons-empty">← Выберите класс</div></div>
+
+      <!-- Training controls (shown when lesson is selected) -->
+      <div id="trainingControls" style="display:none">
+        <div class="ctrl-section">
+
+          <div id="templateNote" class="template-note"></div>
+          <input type="file" id="templateUpload" accept=".txt">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA ── 10 classes with split (drone/anti 1-4) + joint (5-10)
+// ═══════════════════════════════════════════════════════════════
+
+const LESSON_DEFAULTS = {
+  ppo: { lr: 0.0001 },
+  train: { episodes: 20 },
+  weights: { progress: 1.0, waypoint: 2.0, precision: 1.0, altitude: 0.05, time: 0.01, crash: 5.0,
+             vzStability: 0.05, headingStability: 0.05, pitchStability: 0.05, speedStability: 0.05 },
+  metrics: {},
+  status: 'готов к запуску',
+  completed: 0, resumeFrom: 0, totalEpisodes: 0,
+  latest: null, best: null,
+};
+
+// Reward-weight tuple in the same order as the lesson .txt file:
+// прогресс, точка, точность, высота, время, авария, Vстаб, Курс, Тангаж, Vгор.
+function W(progress, waypoint, precision, altitude, time, crash, vzStability, headingStability, pitchStability, speedStability) {
+  return { progress, waypoint, precision, altitude, time, crash, vzStability, headingStability, pitchStability, speedStability };
+}
+
+// `params` (optional) is an array aligned with titles/descs. Each entry may carry
+// per-lesson reward weights (`w`), learning rate (`lr`) and episode count (`ep`),
+// baked straight into the lesson object — the same values the .txt template upload sets.
+function mkLessons(titles, descs, params) {
+  return titles.map((title, i) => {
+    const base = structuredClone(LESSON_DEFAULTS);
+    const p = params && params[i];
+    if (p) {
+      if (p.w) Object.assign(base.weights, p.w);
+      if (p.lr != null) base.ppo.lr = p.lr;
+      if (p.ep != null) base.train.episodes = p.ep;
+    }
+    return { title, desc: descs[i], ...base };
+  });
+}
+
+const CLASSES = [
+  { id:1, label:'Только цель', polygon:'2D', color:'#5ba3e8', mode:'split',
+    desc:'Идеальная кинематика в плоскости. Агент учится идти к точке без инерции, шумов и противника.',
+    droneLessons: mkLessons(
+      ['Движение по прямой на постоянной высоте','Движение с мин на макс высоту','Движение с макс на мин высоту','Разворот на 90°','Разворот на 180°, 270° и 360°'],
+      ['Агент движется от старта к цели по прямой. Высота фиксирована. Без инерции, без ветра.',
+       'Подъём с земли на крейсерскую высоту. Оценка по вертикальной скорости и точности.',
+       'Снижение с эшелона до посадочной высоты. Контроль вертикальной скорости.',
+       'Поворот на четверть круга с сохранением высоты. Координация крена и тангажа.',
+       'Полный разворот и серия поворотов. Проверка устойчивости.'],
+      [ // прямая: держим высоту/курс/скорость, без вертикали
+        { w: W(0.5, 1,   0,   3,   0.01, 10, 4,   2,   0.5, 5  ), lr: 0.0001, ep: 20 },
+        // набор высоты: высоту трекаем, vz низкий вес (нужна вертикаль), курс держим
+        { w: W(0.6, 1,   0.5, 1.5, 0.01, 10, 0.5, 3,   1,   3  ), lr: 0.0001, ep: 20 },
+        // снижение: то же + повышенный штраф аварии у земли
+        { w: W(0.6, 1,   0.5, 1.5, 0.01, 12, 0.5, 3,   1,   3  ), lr: 0.0001, ep: 20 },
+        // поворот 90°: курс отпускаем (нужен разворот), держим высоту/vz
+        { w: W(0.6, 2,   1,   3,   0.01, 10, 3,   0.5, 1,   3  ), lr: 0.0001, ep: 20 },
+        // серия разворотов: точек больше, курс минимален, плавность
+        { w: W(0.6, 2.5, 1,   3,   0.01, 10, 3,   0.3, 1,   2.5), lr: 0.0001, ep: 30 },
+      ]
+    ),
+    antiLessons: mkLessons(
+      ['Взлёт и висение','Перемещение','Разворот на месте','Перемещение + разворот','Полёт по квадрату'],
+      ['Взлёт с базы, удержание высоты и позиции. Контроль вертикальной тяги.',
+       'Движение вперёд-назад, влево-вправо. Базовая координация.',
+       'Разворот на 360° вокруг вертикальной оси. Контроль рыскания.',
+       'Сочетание горизонтального перемещения с разворотом.',
+       'Облёт квадратного маршрута с возвратом на базу.'],
+      [ // взлёт+висение: высоту держим жёстко, позицию (скорость~0) держим
+        { w: W(0.4, 1,   1,   4,   0.01, 12, 1,   2,   1,   4  ), lr: 0.0001, ep: 20 },
+        // перемещение: ровный полёт, держим высоту/курс
+        { w: W(0.6, 1.5, 1,   3,   0.01, 10, 3,   2,   1,   3  ), lr: 0.0001, ep: 20 },
+        // разворот на месте: курс меняем (низкий вес), держим высоту/позицию
+        { w: W(0.3, 1,   1,   4,   0.01, 10, 3,   0.3, 2,   4  ), lr: 0.0001, ep: 20 },
+        // перемещение + разворот: смесь
+        { w: W(0.5, 1.5, 1,   3,   0.01, 10, 2.5, 1,   1.5, 3  ), lr: 0.0001, ep: 20 },
+        // квадрат: много точек/углов, курс отпускаем на поворотах
+        { w: W(0.6, 2.5, 1.5, 3,   0.01, 10, 2.5, 0.5, 1,   2.5), lr: 0.0001, ep: 30 },
+      ]
+    )
+  },
+  { id:2, label:'Инерция и пределы', polygon:'2D', color:'#e87a5b', mode:'split',
+    desc:'Включена инерция, ограничения по углам крена и тангажа.',
+    droneLessons: mkLessons(
+      ['Выход на прямую с инерцией','Поворот с креном','Смена высоты с инерцией','Серпантин','Разворот на месте'],
+      ['Разгон до крейсерской скорости и торможение перед целью. Оценка по перелёту.',
+       'Вход в вираж с заданным креном. Контроль потери высоты.',
+       'Набор и сброс высоты с учётом вертикальной инерции.',
+       'Последовательность из 5 поворотов. Гашение колебаний.',
+       'Полный круг с постоянным креном. Стабильность.'],
+      [ // разгон/торможение: контроль скорости и перелёта (точность), курс держим
+        { w: W(0.6, 1,   1.5, 2.5, 0.02, 10, 3,   2.5, 1,   5  ), lr: 0.0001, ep: 20 },
+        // вираж с креном: не терять высоту, курс отпускаем
+        { w: W(0.6, 2,   1,   4,   0.01, 10, 4,   0.5, 1.5, 2.5), lr: 0.0001, ep: 20 },
+        // смена высоты с инерцией: vz низкий вес, контроль тангажа
+        { w: W(0.6, 1,   1,   2,   0.01, 10, 0.5, 2,   1.5, 3  ), lr: 0.0001, ep: 20 },
+        // серпантин: много поворотов, гашение колебаний (плавность)
+        { w: W(0.6, 2.5, 1,   3,   0.01, 10, 3,   0.5, 2,   3  ), lr: 0.0001, ep: 35 },
+        // круг с постоянным креном: непрерывный разворот, стабильность
+        { w: W(0.5, 2,   1,   4,   0.01, 10, 4,   0.3, 1.5, 3  ), lr: 0.0001, ep: 30 },
+      ]
+    ),
+    antiLessons: mkLessons(
+      ['Инерция разгона','Торможение с точностью','Поворот с креном','Серпантин','Стабилизация'],
+      ['Разгон до крейсерской, инерционный выбег. Контроль дистанции.',
+       'Экстренное торможение перед точкой. Точность остановки.',
+       'Вход в вираж, потеря высоты и восстановление.',
+       'Серия поворотов разного знака. Подавление колебаний.',
+       'Восстановление после возмущения.'],
+      [ // инерция разгона: контроль скорости и выбега
+        { w: W(0.6, 1,   1.5, 3,   0.02, 10, 3,   2,   1,   5  ), lr: 0.0001, ep: 20 },
+        // торможение с точностью: точность остановки максимальна
+        { w: W(0.6, 1,   2.5, 3,   0.01, 12, 3,   2,   1,   4  ), lr: 0.0001, ep: 20 },
+        // вираж с креном: высоту держим, курс отпускаем
+        { w: W(0.6, 2,   1,   4,   0.01, 10, 4,   0.5, 1.5, 2.5), lr: 0.0001, ep: 20 },
+        // серпантин: подавление колебаний
+        { w: W(0.6, 2.5, 1,   3,   0.01, 10, 3,   0.5, 2,   3  ), lr: 0.0001, ep: 35 },
+        // стабилизация после возмущения: вся плавность по максимуму
+        { w: W(0.4, 1,   1,   3,   0.01, 10, 4,   3,   3,   4  ), lr: 0.0001, ep: 30 },
+      ]
+    )
+  },
+  { id:3, label:'Ограниченный обзор', polygon:'2D', color:'#e8a830', mode:'split',
+    desc:'Камера с FOV 90°. Агент теряет цель из вида и учится восстанавливать.',
+    droneLessons: mkLessons(
+      ['Потеря цели','Поиск после прохода','Сканирование','Удержание в манёвре','Слепая зона'],
+      ['Цель уходит за край FOV. Доворот для возврата.',
+       'Проход мимо цели, разворот и повторный захват.',
+       'Поисковое сканирование с последовательным обзором секторов.',
+       'Цель маневрирует. Удержание в FOV подстройкой курса.',
+       'Резкий манёвр — цель в мёртвой зоне. Предсказание позиции.'],
+      [ // потеря цели: курс (наведение носа/камеры) — главный вес
+        { w: W(0.6, 1.5, 1,   2.5, 0.01, 10, 2,   4,   1,   2.5), lr: 0.0001, ep: 20 },
+        // поиск после прохода: разворот + повторный захват
+        { w: W(0.6, 2,   1,   2.5, 0.01, 10, 2,   3.5, 1,   2.5), lr: 0.0001, ep: 20 },
+        // сканирование: курс «гуляет» по секторам — умеренный вес
+        { w: W(0.6, 2,   1,   2.5, 0.02, 10, 2,   2,   1,   2  ), lr: 0.0001, ep: 30 },
+        // удержание в манёвре: трекинг курса максимален
+        { w: W(0.5, 1.5, 1,   3,   0.01, 10, 2.5, 5,   1,   2.5), lr: 0.0001, ep: 30 },
+        // слепая зона: предсказание (точность) + наведение
+        { w: W(0.6, 2,   1.5, 2.5, 0.01, 10, 2,   4,   1,   2.5), lr: 0.0001, ep: 35 },
+      ]
+    ),
+    antiLessons: mkLessons(
+      ['Потеря цели','Сканирование сектора','Захват после прохода','Удержание в манёвре','Поиск в слепой зоне'],
+      ['Цель уходит из FOV. Восстановление захвата.',
+       'Последовательный обзор секторов, поиск цели.',
+       'Разворот после прохода цели, повторный захват.',
+       'Цель маневрирует — удержание в FOV.',
+       'Предсказание позиции после ухода в слепую зону.'],
+      [ // потеря цели: восстановление захвата (курс)
+        { w: W(0.6, 1.5, 1,   2.5, 0.01, 10, 2,   4,   1,   2.5), lr: 0.0001, ep: 20 },
+        // сканирование сектора
+        { w: W(0.6, 2,   1,   2.5, 0.02, 10, 2,   2,   1,   2  ), lr: 0.0001, ep: 30 },
+        // захват после прохода
+        { w: W(0.6, 2,   1,   2.5, 0.01, 10, 2,   3.5, 1,   2.5), lr: 0.0001, ep: 20 },
+        // удержание в манёвре: трекинг курса максимален
+        { w: W(0.5, 1.5, 1,   3,   0.01, 10, 2.5, 5,   1,   2.5), lr: 0.0001, ep: 30 },
+        // поиск в слепой зоне: предсказание (точность) + наведение
+        { w: W(0.6, 2,   1.5, 2.5, 0.01, 10, 2,   4,   1,   2.5), lr: 0.0001, ep: 35 },
+      ]
+    )
+  },
+  { id:4, label:'2.5D профиль', polygon:'3D', color:'#9a8fe0', mode:'split',
+    desc:'Агент в объёме: набор/снижение + поворот. Ветровые возмущения.',
+    droneLessons: mkLessons(
+      ['Выход в точку в 3D','Поворот с набором','Пике с доворотом','Ветровой снос','Порыв ветра'],
+      ['Приход в заданную точку (x,y,z). Управление по трём осям.',
+       'Восходящая спираль. Контроль скорости, крена и вертикальной.',
+       'Снижение с разворотом на 90°. Имитация захода.',
+       'Боковой ветер. Угол упреждения.',
+       'Внезапный порыв сбивает с курса. Время восстановления.'],
+      [ // выход в 3D точку: высота + точность по трём осям
+        { w: W(0.6, 1.5, 1.5, 3,   0.01, 10, 1.5, 2,   1.5, 3  ), lr: 0.0001, ep: 20 },
+        // поворот с набором (спираль): vz низкий вес, курс отпускаем
+        { w: W(0.6, 2,   1,   2.5, 0.01, 10, 0.5, 0.5, 1.5, 3  ), lr: 0.0001, ep: 30 },
+        // пике с доворотом: снижение + поворот, повышенный штраф аварии
+        { w: W(0.6, 2,   1.5, 2.5, 0.01, 12, 0.5, 0.5, 0.5, 3  ), lr: 0.0001, ep: 30 },
+        // ветровой снос: упреждение, держим точность и скорость
+        { w: W(0.6, 1.5, 1.5, 3,   0.01, 10, 2,   1.5, 1.5, 4  ), lr: 0.0001, ep: 20 },
+        // порыв ветра: время восстановления — вся плавность
+        { w: W(0.5, 1.5, 1,   3,   0.01, 12, 3,   3,   3,   4  ), lr: 0.0001, ep: 35 },
+      ]
+    ),
+    antiLessons: mkLessons(
+      ['Выход в 3D точку','Вертикальный профиль','Спираль','Ветровой снос','Восстановление'],
+      ['Приход в точку (x,y,z) с контролем по трём осям.',
+       'Набор + снижение по профилю. Контроль скорости.',
+       'Восходящая/нисходящая спираль с креном.',
+       'Боковой ветер, ввод упреждения.',
+       'Стабилизация после порыва ветра.'],
+      [ // выход в 3D точку
+        { w: W(0.6, 1.5, 1.5, 3,   0.01, 10, 1.5, 2,   1.5, 3  ), lr: 0.0001, ep: 20 },
+        // вертикальный профиль: высоту трекаем, vz низкий вес
+        { w: W(0.6, 1.5, 1,   3,   0.01, 10, 0.5, 2,   1.5, 3  ), lr: 0.0001, ep: 30 },
+        // спираль с креном: vz низкий, курс отпускаем
+        { w: W(0.6, 2,   1,   2.5, 0.01, 10, 0.5, 0.5, 1.5, 3  ), lr: 0.0001, ep: 30 },
+        // ветровой снос: упреждение
+        { w: W(0.6, 1.5, 1.5, 3,   0.01, 10, 2,   1.5, 1.5, 4  ), lr: 0.0001, ep: 20 },
+        // восстановление после порыва: вся плавность
+        { w: W(0.4, 1,   1,   3,   0.01, 12, 4,   3,   3,   4  ), lr: 0.0001, ep: 35 },
+      ]
+    )
+  },
+  { id:5, label:'Одиночный противник', polygon:'3D', color:'#e04b4b', mode:'joint',
+    desc:'На полигоне антидрон-перехватчик. Дрон учится уклоняться и достигать цели.',
+    reward:'−distance −threat + arrive_bonus + survival',
+    lessons: mkLessons(
+      ['Уклонение от лобовой','Контрманёвр','Смена высоты','Ложный манёвр','Достижение под давлением'],
+      ['Антидрон атакует спереди. Уход с линии атаки.',
+       'Антидрон сзади — резкий манёвр для сброса.',
+       'Уход на малую высоту, маскировка рельефом.',
+       'Имитация уклонения в одну сторону, рывок к цели.',
+       'Полный сценарий: взлёт, уклонение, поражение цели.']
+    )
+  },
+  { id:6, label:'Адаптивность', polygon:'3D', color:'#3ecaa5', mode:'joint',
+    desc:'Противник меняет тактику. Распознавание паттернов и выбор контрмеры.',
+    lessons: mkLessons(
+      ['Распознавание паттерна','Смена стратегии','Обучение на эпизодах','Ловушка','Многоходовка'],
+      ['Антидрон использует один из трёх шаблонов. Классификация по телеметрии.',
+       'Смена манёвра уклонения при изменении паттерна.',
+       'Обновление модели поведения противника после серии эпизодов.',
+       'Притворная уязвимость, провокация атаки и контратака.',
+       '3+ последовательных манёвра с переключением стратегии.']
+    )
+  },
+  { id:7, label:'Кооперация', polygon:'3D', color:'#4ecb71', mode:'joint',
+    desc:'Несколько дронов в группе. Распределение целей, ротация, прикрытие.',
+    lessons: mkLessons(
+      ['Распределение целей','Ротация','Прикрытие','Синхронная атака','Эвакуация'],
+      ['3 дрона против 2 целей. Выбор ближайшей неатакованной.',
+       'Ведущий повреждён — ведомый принимает командование.',
+       'Один атакует, второй блокирует антидрон.',
+       'Два дрона с разных направлений. Точная синхронизация.',
+       'Отход группы к базе, прикрытие отставшего.']
+    )
+  },
+  { id:8, label:'Роевое движение', polygon:'3D', color:'#e8a830', mode:'joint',
+    desc:'5+ дронов как рой. Сплочённость, избегание столкновений, общий вектор.',
+    lessons: mkLessons(
+      ['Построение (клин)','Избегание столкновений','Перенаправление','Облёт препятствия','Роевая атака'],
+      ['Дроны в клин. Удержание позиции относительно соседей.',
+       'Сближение — расхождение по приоритету. Без координатора.',
+       'Новый вектор движения. Плавная смена курса, сохранение строя.',
+       'Препятствие — деление на две группы, обход, восстановление.',
+       'Все дроны атакуют одну цель. Координация в 3D.']
+    )
+  },
+  { id:9, label:'3D полигон', polygon:'3D', color:'#9a8fe0', mode:'joint',
+    desc:'3D-полигон с препятствиями, рельефом, зонами ПВО. Тактическое мышление.',
+    lessons: mkLessons(
+      ['Полёт над рельефом','Проход между препятствиями','Обход ПВО','Теневая навигация','Экзамен 3D'],
+      ['Следование рельефу. Оценка по превышению высоты.',
+       'Коридор между препятствиями. Безопасный маршрут.',
+       'Зона обнаружения. Маршрут в обход, складки местности.',
+       'Естественные укрытия для скрытного подлёта.',
+       'Взлёт, 3D-навигация, уклонение от ПВО, атака, возврат.']
+    )
+  },
+  { id:10, label:'Экзамен', polygon:'3D', color:'#4ecb71', mode:'joint',
+    desc:'Финальный экзамен: 3D, активный антидрон, ПВО, роевая координация, лимит времени.',
+    lessons: mkLessons(
+      ['Скоростной прорыв','Уклонение + навигация','Кооперативный экзамен','Экстремальный сценарий','Финальная миссия'],
+      ['Макс. скорость на отрезке с препятствиями. Время — ключ.',
+       'Уклонение от антидрона + прокладка маршрута через ПВО.',
+       'Пара: один отвлекает ПВО, второй атакует.',
+       'Два антидрона, без роя, цель глубоко в ПВО.',
+       'Все факторы: 3D, ПВО, антидроны, рой, лимит топлива.']
+    )
+  }
+];
+
+const COLORS = { drone: '#e8a830', antidrone: '#5ba3e8', joint: '#4ecb71' };
+
+const TRAINING_API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://127.0.0.1:8787/api/train'
+  : 'http://neuromotion.ru:8787/api/train';
+const STORAGE_KEY = 'polygon3d.agentTraining.v1';
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+
+let currentClass = 1;
+let currentLesson = 0;
+let currentBranch = 'drone'; // 'drone' | 'anti' | 'joint'
+let activeTrainingKey = null;
+let activeJobId = null;
+let trainingTimer = null;
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function getCls(id) { return CLASSES.find(c => c.id === id); }
+
+function getLessons(cls) {
+  if (!cls) return [];
+  if (cls.mode === 'split') return cls[currentBranch === 'anti' ? 'antiLessons' : 'droneLessons'];
+  return cls.lessons;
+}
+
+function getLesson(cls, idx) { const l = getLessons(cls); return l && l[idx] ? l[idx] : null; }
+
+function getCurLessons() { return getLessons(getCls(currentClass)); }
+
+function getCurLesson() { return getLesson(getCls(currentClass), currentLesson); }
+
+function lessonKey(clsId, branch, idx) { return `c${clsId}_${branch}_l${idx}`; }
+
+function curKey() { return lessonKey(currentClass, currentBranch, currentLesson); }
+
+function hexToRgba(hex, a) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function classLabel(clsId, branch, pad) {
+  const prefix = (clsId >= 1 && clsId <= 4 && branch === 'anti') ? 'A' : 'C';
+  return prefix + (pad ? String(clsId).padStart(2, '0') : clsId);
+}
+
+function getClassColor(cls) {
+  if (cls.mode === 'split') return currentBranch === 'anti' ? COLORS.antidrone : COLORS.drone;
+  return cls.color;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+
+function saveState() {
+  try {
+    // Preserve chart data from training.html (not stored in CLASSES objects)
+    let existingCharts = {};
+    try {
+      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (existing && existing.lessons) {
+        Object.keys(existing.lessons).forEach(function(k) {
+          if (existing.lessons[k].chart) existingCharts[k] = existing.lessons[k].chart;
+        });
+      }
+    } catch(_) {}
+    const cls = getCls(currentClass);
+    const lessons = getLessons(cls);
+    const total = lessons.length;
+    const done = lessons.filter(l => l.status && l.status.includes('заверш')).length;
+    const progressPct = total > 0 ? Math.round(done / total * 100) : 0;
+    const data = { currentClass, currentLesson, currentBranch, progressPct, lessons: {} };
+    CLASSES.forEach(cls => {
+      if (cls.mode === 'split') {
+        ['droneLessons','antiLessons'].forEach(key => {
+          cls[key].forEach((l, i) => {
+            const k = lessonKey(cls.id, key==='antiLessons'?'anti':'drone', i);
+            data.lessons[k] = l;
+            if (existingCharts[k]) data.lessons[k].chart = existingCharts[k];
+          });
+        });
+      } else {
+        cls.lessons.forEach((l, i) => {
+          const k = lessonKey(cls.id, 'joint', i);
+          data.lessons[k] = l;
+          if (existingCharts[k]) data.lessons[k].chart = existingCharts[k];
+        });
+      }
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(_) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.currentClass) currentClass = data.currentClass;
+    if (data.currentLesson !== undefined) currentLesson = data.currentLesson;
+    if (data.currentBranch) currentBranch = data.currentBranch;
+    if (data.lessons) {
+      CLASSES.forEach(cls => {
+        if (cls.mode === 'split') {
+          ['droneLessons','antiLessons'].forEach(key => {
+            cls[key].forEach((l, i) => {
+              const k = lessonKey(cls.id, key==='antiLessons'?'anti':'drone', i);
+              // Try exact match, then fallback to old format (without 'l')
+              const s = data.lessons[k] || data.lessons[k.replace('_l' + i, '_' + i)];
+              if (s) Object.assign(l, s);
+            });
+          });
+        } else {
+          cls.lessons.forEach((l, i) => {
+            const k = lessonKey(cls.id, 'joint', i);
+            const s = data.lessons[k] || data.lessons[k.replace('_l' + i, '_' + i)];
+            if (s) { delete s.title; delete s.desc; Object.assign(l, s); }
+          });
+        }
+      });
+    }
+  } catch(_) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: classes list
+// ═══════════════════════════════════════════════════════════════
+
+function renderClasses() {
+  const el = document.getElementById('classesList');
+  el.innerHTML = CLASSES.map(c => {
+    const active = c.id === currentClass;
+    const allowed = (currentBranch === 'joint') === (c.mode === 'joint');
+    const bg = active ? hexToRgba(c.color, 0.12) : 'transparent';
+    const borderColor = active ? c.color : 'transparent';
+    const branchSel = c.mode === 'split'
+      ? `<div class="cls-branch-btns">
+          <button class="cls-branch-btn${currentClass===c.id&&currentBranch==='drone'?' active':''} drone" data-branch="drone">ДРОН</button>
+          <button class="cls-branch-btn${currentClass===c.id&&currentBranch==='anti'?' active':''} anti" data-branch="anti">АНТИДРОН</button>
+         </div>`
+      : `<div class="cls-branch-btns">
+          <button class="cls-branch-btn${currentClass===c.id&&currentBranch==='joint'?' active':''} joint" data-branch="joint">ДРОН + АНТИДРОН</button>
+         </div>`;
+    const disabled = !allowed ? ' disabled' : '';
+    return `<div class="class-item${active?' active':''}${disabled}" data-id="${c.id}" style="background:${bg};border-top-color:${borderColor}">
+      <div class="class-item-name"><span class="class-badge">${String(c.id).padStart(2,'0')}</span> ${c.label} <span style="float:right;font-size:9px;color:#555">${c.polygon}</span></div>
+      <div class="class-item-desc">${c.desc}</div>
+      ${branchSel}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.class-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.cls-branch-btn')) return;
+      const id = Number(item.dataset.id);
+      if (id === currentClass) return;
+      const cls = getCls(id);
+      if ((currentBranch === 'joint') !== (cls.mode === 'joint')) return;
+      currentClass = id; currentLesson = 0;
+      if (cls.mode === 'joint') currentBranch = 'joint';
+      else currentBranch = currentBranch === 'anti' ? 'anti' : 'drone';
+      renderClasses(); renderBannerSchema(); renderLessons(); renderControls();
+      saveState();
+    });
+  });
+  el.querySelectorAll('.cls-branch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const branch = btn.dataset.branch;
+      if (currentBranch === branch) return;
+      currentBranch = branch; currentLesson = 0;
+      renderClasses(); renderBannerSchema(); renderLessons(); renderControls();
+      saveState();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: lessons list
+// ═══════════════════════════════════════════════════════════════
+
+function renderLessons() {
+  const cls = getCls(currentClass);
+  const lessons = getLessons(cls);
+  const el = document.getElementById('lessonsList');
+  if (!lessons.length) { el.innerHTML = '<div class="lessons-empty">Нет уроков</div>'; return; }
+
+  var tabsHtml = '<div class="lesson-tabs">';
+  for (var i = 0; i < lessons.length; i++) {
+    var hasTemplate = !!getCustomDesc(cls.id, currentBranch, i);
+    var active = i === currentLesson;
+    tabsHtml += '<div class="lesson-tab c' + i + (active ? ' active' : '') + (hasTemplate ? ' has-template' : '') + '" data-idx="' + i + '">' + (i + 1) + ' урок</div>';
+  }
+  tabsHtml += '</div>';
+
+  var lesson = getCurLesson();
+  var contentHtml = '<div class="lesson-content">' + buildLessonHtml(lesson, cls) + '</div>';
+
+  el.innerHTML = tabsHtml + contentHtml;
+
+  el.querySelectorAll('.lesson-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var idx = Number(this.dataset.idx);
+      if (idx === currentLesson) return;
+      currentLesson = idx;
+      renderLessons(); renderCenterDetail(); renderControls();
+    });
+  });
+
+  var content = el.querySelector('.lesson-content');
+  if (content) {
+    content.addEventListener('change', onLessonEdit);
+    content.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && e.target.classList.contains('tpl-edit')) { e.preventDefault(); e.target.blur(); }
+    });
+  }
+}
+
+// Reward-weight rows in the same order/labels as the lesson .txt file.
+const WEIGHT_ROWS = [
+  ['прогресс','progress'], ['точка','waypoint'], ['точность','precision'], ['высота','altitude'],
+  ['время','time'], ['авария','crash'], ['Vстаб','vzStability'], ['Курс','headingStability'],
+  ['Тангаж','pitchStability'], ['Vгор','speedStability'],
+];
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"]/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+  });
+}
+
+function tplInput(field, key, val) {
+  return '<input class="tpl-edit" type="text" inputmode="decimal" data-f="' + field + '"' +
+         (key ? ' data-k="' + key + '"' : '') + ' value="' + val + '">';
+}
+
+function tplSelect(field, key, val, opts) {
+  const set = [val].concat(opts).filter(function(v, i, a) { return v && a.indexOf(v) === i; });
+  return '<select class="tpl-edit tpl-sel" data-f="' + field + '" data-k="' + key + '">' +
+    set.map(function(o) { return '<option value="' + escHtml(o) + '"' + (o === val ? ' selected' : '') + '>' + escHtml(o) + '</option>'; }).join('') +
+    '</select>';
+}
+
+// Episode time caps per class (mirrors CLASS_TIME_LIMITS in src/ml/curriculum.js).
+const CLASS_TL = { 1: 90, 2: 120, 3: 150, 4: 210, 5: 240 };
+
+// Scenario params per class+role — mirrors getCurriculumClass() in
+// src/ml/curriculum.js (the server canon). Kept in sync manually because this
+// page is a plain <script> and can't import the ES module.
+const SCENARIO_DEFAULTS = {
+  1: { drone: { dspeed:160, aspeed:250, ndrones:1, nanti:0, camrange:2500, arange:1000, adelay:0, policyMode:'flight-school' },
+       anti:  { dspeed:160, aspeed:220, ndrones:0, nanti:1, camrange:2500, arange:1000, adelay:0, policyMode:'flight-school' } },
+  2: { drone: { dspeed:200, aspeed:300, ndrones:1, nanti:0, camrange:2200, arange:900, adelay:0, policyMode:'flight-school' },
+       anti:  { dspeed:200, aspeed:300, ndrones:0, nanti:1, camrange:2200, arange:900, adelay:0, policyMode:'flight-school' } },
+  3: { drone: { dspeed:200, aspeed:320, ndrones:1, nanti:0, camrange:650, arange:450, adelay:0, policyMode:'flight-school' },
+       anti:  { dspeed:200, aspeed:320, ndrones:0, nanti:1, camrange:650, arange:450, adelay:0, policyMode:'flight-school' } },
+  4: { drone: { dspeed:200, aspeed:320, ndrones:1, nanti:0, camrange:900, arange:650, adelay:0, policyMode:'flight-school' },
+       anti:  { dspeed:200, aspeed:320, ndrones:0, nanti:1, camrange:900, arange:650, adelay:0, policyMode:'flight-school' } },
+};
+const SCENARIO_JOINT = { dspeed:200, aspeed:350, ndrones:1, nanti:1, camrange:900, arange:650, adelay:5, policyMode:'rule' };
+
+function scenarioDefaults(clsId, branch) {
+  const tl = CLASS_TL[clsId] ?? 180;
+  if (clsId >= 5) return { ...SCENARIO_JOINT, timeLimit: tl };
+  const byRole = SCENARIO_DEFAULTS[clsId] || SCENARIO_DEFAULTS[1];
+  return { ...(branch === 'anti' ? byRole.anti : byRole.drone), timeLimit: tl };
+}
+
+// Non-mutating: defaults merged under any stored per-lesson overrides (for display).
+function scenarioView(lesson, clsId, branch) {
+  return { ...scenarioDefaults(clsId, branch), ...(lesson.curriculumParams || {}) };
+}
+
+// Mutating: persist the merged scenario onto the lesson (before edit / before training).
+function ensureScenario(lesson, clsId, branch) {
+  lesson.curriculumParams = scenarioView(lesson, clsId, branch);
+  return lesson.curriculumParams;
+}
+
+// Builds the editable template view straight from lesson data (not from an
+// uploaded .txt) so every lesson shows its parameters, weights/LR/episodes editable.
+function buildLessonHtml(lesson, cls) {
+  if (!lesson) return 'Описание отсутствует';
+  const w = lesson.weights;
+  const cp = scenarioView(lesson, currentClass, currentBranch);
+  const hdr = function(t) { return '<span class="tpl-header">[' + t + ']</span>'; };
+  const L = [];
+  L.push(hdr('ЗАГОЛОВОК'), escHtml(lesson.title), '');
+  L.push(hdr('ОПИСАНИЕ'), escHtml(lesson.desc || ''), '');
+  L.push(hdr('УСЛОВИЯ'),
+    'Класс: ' + currentClass,
+    'Ветка: ' + currentBranch,
+    'Урок: ' + (currentLesson + 1),
+    'Полигон: ' + (cls ? cls.polygon : ''), '');
+  L.push(hdr('КРИТЕРИИ'),
+    'Награда: ' + (lesson.metrics && lesson.metrics.reward != null ? lesson.metrics.reward : '-'),
+    'Прогресс: ' + (lesson.metrics && lesson.metrics.progress != null ? Math.round(lesson.metrics.progress * 100) + '%' : '-'), '');
+  L.push(hdr('ВЕСА'));
+  WEIGHT_ROWS.forEach(function(row) { L.push(row[0] + ': ' + tplInput('w', row[1], w[row[1]] != null ? w[row[1]] : 0.05)); });
+  L.push('');
+  L.push(hdr('ПАРАМЕТРЫ'),
+    'Эпизоды: ' + tplInput('ep', '', lesson.train.episodes),
+    'LR: ' + tplInput('lr', '', lesson.ppo.lr), '');
+  L.push(hdr('СЦЕНАРИЙ'),
+    'dspeed: ' + tplInput('cp', 'dspeed', cp.dspeed),
+    'aspeed: ' + tplInput('cp', 'aspeed', cp.aspeed),
+    'ndrones: ' + tplInput('cp', 'ndrones', cp.ndrones),
+    'nanti: ' + tplInput('cp', 'nanti', cp.nanti),
+    'camrange: ' + tplInput('cp', 'camrange', cp.camrange),
+    'arange: ' + tplInput('cp', 'arange', cp.arange),
+    'adelay: ' + tplInput('cp', 'adelay', cp.adelay),
+    'timeLimit: ' + tplInput('cp', 'timeLimit', cp.timeLimit),
+    'policyMode: ' + tplSelect('cps', 'policyMode', cp.policyMode, ['flight-school', 'rule']));
+  return L.join('\n');
+}
+
+// Commit an inline edit of weights / episodes / LR back into the lesson object.
+function onLessonEdit(e) {
+  const inp = e.target;
+  if (!inp.classList || !inp.classList.contains('tpl-edit')) return;
+  const lesson = getCurLesson();
+  if (!lesson) return;
+  const f = inp.dataset.f;
+  if (f === 'cps') { // string scenario param (policyMode)
+    ensureScenario(lesson, currentClass, currentBranch);
+    lesson.curriculumParams[inp.dataset.k] = inp.value;
+    saveState();
+    return;
+  }
+  let v = parseFloat(String(inp.value).replace(',', '.'));
+  if (!isFinite(v)) { renderLessons(); return; } // invalid → revert to stored value
+  if (f === 'w') {
+    lesson.weights[inp.dataset.k] = v;
+    lesson.templateWeights = { ...lesson.weights };
+  } else if (f === 'ep') {
+    v = Math.max(1, Math.round(v));
+    lesson.train.episodes = v; inp.value = v;
+  } else if (f === 'lr') {
+    lesson.ppo.lr = v;
+  } else if (f === 'cp') { // numeric scenario param
+    ensureScenario(lesson, currentClass, currentBranch);
+    const k = inp.dataset.k;
+    if (k === 'ndrones' || k === 'nanti') { v = Math.max(0, Math.round(v)); inp.value = v; }
+    lesson.curriculumParams[k] = v;
+  }
+  saveState();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: training controls
+// ═══════════════════════════════════════════════════════════════
+
+function renderControls() {
+  const cls = getCls(currentClass);
+  const lesson = getCurLesson();
+  const controls = document.getElementById('trainingControls');
+
+  if (!cls || !lesson) { controls.style.display = 'none'; return; }
+  controls.style.display = 'block';
+
+  // Buttons
+  var btnP = document.getElementById('btnPreview'); if (btnP) btnP.disabled = false;
+
+  // Template note
+  const custom = getCustomDesc(currentClass, currentBranch, currentLesson);
+  document.getElementById('templateNote').textContent = custom ? '✓ Загружен пользовательский файл' : '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SVG SCHEMATIC
+// ═══════════════════════════════════════════════════════════════
+
+function renderBannerSchema() {
+  const el = document.getElementById('bannerSchema');
+  if (!el) return;
+  const BW = 1200, BH = 100;
+  const cw = 72, ch = 28, gap = 14;
+  const totalW = 10 * (cw + gap) - gap;
+  const startX = (BW - totalW) / 2;
+  const pathY = 14;
+
+  let svg = `<svg class="schema-svg" viewBox="0 0 ${BW} ${BH}" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="bArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#555"/></marker><marker id="bArrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#e8a830"/></marker><marker id="bArrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#5ba3e8"/></marker></defs>
+    <rect x="0" y="0" width="${BW}" height="${BH}" fill="transparent"/>`;
+
+  // Background
+  svg += `<rect x="8" y="4" width="${BW - 16}" height="${BH - 8}" rx="6" ry="6" fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+
+  for (let i = 0; i < 10; i++) {
+    const x = startX + i * (cw + gap);
+    const clsObj = CLASSES[i];
+    if (!clsObj) continue;
+    const isActive = clsObj.id === currentClass;
+
+    if (i >= 4) {
+      svg += `<rect x="${x}" y="${pathY + 10}" width="${cw}" height="${ch}" rx="4" ry="4" fill="${isActive ? '#4ecb71' : 'rgba(78,203,113,0.15)'}" stroke="${isActive ? '#4ecb71' : 'rgba(78,203,113,0.3)'}" stroke-width="${isActive ? 2.5 : 1}"/>
+        <text x="${x + cw/2}" y="${pathY + 10 + ch/2 + 4}" text-anchor="middle" font-size="11" font-weight="600" font-family="SF Mono,monospace" fill="${isActive ? '#fff' : '#4ecb71'}">C${i+1}</text>`;
+      if (i > 4) svg += `<line x1="${startX + (i-1)*(cw+gap) + cw}" y1="${pathY + 10 + ch/2}" x2="${x - 2}" y2="${pathY + 10 + ch/2}" stroke="#4ecb71" stroke-width="1.5" marker-end="url(#bArrow)"/>`;
+    } else {
+      const droneY = pathY - 6;
+      const antiY = pathY + 40;
+      const dActive = isActive && currentBranch === 'drone';
+      const aActive = isActive && currentBranch === 'anti';
+      svg += `<rect x="${x}" y="${droneY}" width="${cw}" height="${ch}" rx="4" ry="4" fill="${dActive ? '#e8a830' : 'rgba(232,168,48,0.12)'}" stroke="${dActive ? '#e8a830' : 'rgba(232,168,48,0.3)'}" stroke-width="${dActive ? 2.5 : 1}"/>
+        <text x="${x + cw/2}" y="${droneY + ch/2 + 4}" text-anchor="middle" font-size="11" font-weight="600" font-family="SF Mono,monospace" fill="${dActive ? '#fff' : '#e8a830'}">C${i+1}</text>`;
+      svg += `<rect x="${x}" y="${antiY}" width="${cw}" height="${ch}" rx="4" ry="4" fill="${aActive ? '#5ba3e8' : 'rgba(91,163,232,0.12)'}" stroke="${aActive ? '#5ba3e8' : 'rgba(91,163,232,0.3)'}" stroke-width="${aActive ? 2.5 : 1}"/>
+        <text x="${x + cw/2}" y="${antiY + ch/2 + 4}" text-anchor="middle" font-size="11" font-weight="600" font-family="SF Mono,monospace" fill="${aActive ? '#fff' : '#5ba3e8'}">${classLabel(i+1, 'anti', false)}</text>`;
+      if (i > 0) {
+        svg += `<line x1="${startX + (i-1)*(cw+gap) + cw}" y1="${droneY + ch/2}" x2="${x - 2}" y2="${droneY + ch/2}" stroke="#e8a830" stroke-width="1.5" marker-end="url(#bArrowOrange)"/>`;
+        svg += `<line x1="${startX + (i-1)*(cw+gap) + cw}" y1="${antiY + ch/2}" x2="${x - 2}" y2="${antiY + ch/2}" stroke="#5ba3e8" stroke-width="1.5" marker-end="url(#bArrowBlue)"/>`;
+      }
+    }
+  }
+
+  // Merge arrows (C4 drone/anti → C5)
+  const mergeX = startX + 4 * (cw + gap);
+  const droneMergeEnd = startX + 3 * (cw + gap) + cw;
+  const antiMergeEnd = startX + 3 * (cw + gap) + cw;
+  svg += `<line x1="${droneMergeEnd}" y1="${pathY - 6 + ch/2}" x2="${mergeX - gap/2}" y2="${pathY + 10 + ch/2}" stroke="#e8a830" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bArrowOrange)"/>`;
+  svg += `<line x1="${antiMergeEnd}" y1="${pathY + 40 + ch/2}" x2="${mergeX - gap/2}" y2="${pathY + 10 + ch/2}" stroke="#5ba3e8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bArrowBlue)"/>`;
+
+  // Labels under joint classes
+  for (let i = 4; i < 10; i++) {
+    const x = startX + i * (cw + gap);
+    const clsObj = CLASSES[i];
+    if (!clsObj) continue;
+    svg += `<text x="${x + cw/2}" y="${pathY + 10 + ch + 13}" text-anchor="middle" font-size="7" fill="#555" font-family="SF Mono,monospace">${clsObj.label.slice(0, 10)}</text>`;
+  }
+
+  svg += `</svg>`;
+  el.innerHTML = svg;
+  renderCenterDetail();
+  updateProgress();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: progress info
+// ═══════════════════════════════════════════════════════════════
+
+function updateProgress() {
+  const el = document.getElementById('progressContent');
+  if (!el) return;
+  const cls = getCls(currentClass);
+  if (!cls) { el.innerHTML = '← Выберите класс'; return; }
+  const lessons = getLessons(cls);
+  const total = lessons.length;
+  const done = lessons.filter(l => l.status && l.status.includes('заверш')).length;
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  const branchInfo = cls.mode === 'joint' ? 'Совместно' : (currentBranch === 'drone' ? 'Дрон' : 'Антидрон');
+  el.innerHTML =
+    '<div class="prog-bar"><div class="prog-fill" style="width:' + pct + '%"></div></div>' +
+    '<div class="prog-text"><span style="color:#4ecb71">' + done + '</span> из <span style="color:#aaa">' + total + '</span> уроков завершено · <span style="color:#666">' + branchInfo + '</span> <span style="float:right;color:#999">' + pct + '%</span></div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: center detail (lessons + cycle)
+// ═══════════════════════════════════════════════════════════════
+
+function renderCenterDetail() {
+  const el = document.getElementById('centerDetail');
+  if (!el) return;
+  const cls = getCls(currentClass);
+  const lessons = cls ? getLessons(cls) : [];
+
+  if (!cls || !lessons.length) { el.innerHTML = '<div class="cd-header" style="color:#555">← Выберите класс</div>'; return; }
+
+  let html = '<div class="cd-header">Практические задания</div>';
+  lessons.forEach((l, i) => {
+    const isActive = i === currentLesson;
+    const statusDot = l.status.includes('заверш') ? '●' : l.status.includes('обучается') ? '▶' : '';
+    const hasTemplate = !!getCustomDesc(cls.id, currentBranch, i);
+    const pct = l.metrics?.progress != null ? Math.round(l.metrics.progress * 100) : 0;
+    html += '<div class="cd-lesson c' + i + (isActive ? ' active' : '') + '" data-idx="' + i + '">' +
+      '<span class="cd-tpl-ind' + (hasTemplate ? ' lit' : '') + '"></span>' +
+      '<span class="cd-num">УРОК ' + (i+1) + '</span> — ' + l.title + (statusDot ? ' <span class="cd-dot">' + statusDot + '</span>' : '') +
+      '<span class="cd-bar"><span class="cd-bar-fill" style="width:' + pct + '%"></span></span></div>';
+  });
+  html += '<div class="cd-template-row">' +
+    '<button class="cd-tpl-btn dl" id="cdDlTemplate">⬇ Шаблон</button>' +
+    '<button class="cd-tpl-btn ul" id="cdUlTemplate">⬆ Загрузить</button>' +
+    '<button class="cd-tpl-btn rst" id="cdRstTemplate">✕ Сбросить</button>' +
+    '</div>';
+  el.innerHTML = html;
+
+  el.querySelectorAll('.cd-lesson').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const idx = Number(btn.dataset.idx);
+      if (idx === currentLesson) return;
+      currentLesson = idx;
+      renderLessons(); renderCenterDetail(); renderControls();
+    });
+  });
+
+  document.getElementById('cdDlTemplate')?.addEventListener('click', downloadTemplate);
+  document.getElementById('cdUlTemplate')?.addEventListener('click', function() { document.getElementById('templateUpload').click(); });
+  document.getElementById('cdRstTemplate')?.addEventListener('click', resetTemplate);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAINING LOGIC (chain / API)
+// ═══════════════════════════════════════════════════════════════
+
+function getParentLessonKey(clsId, branch, idx) {
+  // Within same class: lesson N-1 is parent
+  if (idx > 0) return lessonKey(clsId, branch, idx - 1);
+  // First lesson of class: parent is last lesson of previous class
+  if (clsId > 1) {
+    const prevCls = getCls(clsId - 1);
+    if (!prevCls) return null;
+    if (prevCls.mode === 'split') {
+      // For class 1-4, the parent depends on branch
+      return lessonKey(clsId - 1, branch, 4); // last lesson of branch in prev class
+    }
+    return lessonKey(clsId - 1, 'joint', 4);
+  }
+  return null;
+}
+
+function getLessonByKey(key) {
+  if (!key) return null;
+  const parts = key.match(/c(\d+)_(\w+)_l(\d+)/);
+  if (!parts) return null;
+  const cls = getCls(Number(parts[1]));
+  if (!cls) return null;
+  const branch = parts[2];
+  const idx = Number(parts[3]);
+  const l = cls.mode === 'split' ? (branch === 'anti' ? cls.antiLessons : cls.droneLessons)[idx] : cls.lessons[idx];
+  return l || null;
+}
+
+function getLessonStatus(key) {
+  const l = getLessonByKey(key);
+  return l ? l.status || 'готов к запуску' : null;
+}
+
+// Chain: find all upstream empty lessons → start from first empty
+function getTrainingChain(targetKey, resume) {
+  const chain = [];
+  const visited = new Set();
+
+  function visit(key) {
+    if (!key || visited.has(key)) return;
+    visited.add(key);
+    const parentKey = getParentLessonKey(...parseKey(key));
+    if (parentKey) visit(parentKey);
+    const lesson = getLessonByKey(key);
+    if (lesson && key !== targetKey && !lesson.best && !lesson.latest) {
+      chain.push({ key, resume: false });
+    }
+  }
+
+  function parseKey(k) {
+    const p = k.match(/c(\d+)_(\w+)_l(\d+)/);
+    return [Number(p[1]), p[2], Number(p[3])];
+  }
+
+  visit(targetKey);
+  chain.push({ key: targetKey, resume });
+  return chain;
+}
+
+function getLessonInfo(key) {
+  const p = key.match(/c(\d+)_(\w+)_l(\d+)/);
+  const cls = getCls(Number(p[1]));
+  const branch = p[2];
+  const idx = Number(p[3]);
+  const l = getLessonByKey(key);
+  const role = branch === 'anti' ? 'anti' : (cls.mode === 'joint' ? 'joint' : 'drone');
+  return { clsId: Number(p[1]), branch, idx, lesson: l, role, cls };
+}
+
+let trainingChain = [];
+let chainIndex = 0;
+
+function parseKey(k) {
+  const p = k.match(/c(\d+)_(\w+)_l(\d+)/);
+  return [Number(p[1]), p[2], Number(p[3])];
+}
+
+async function startTraining(resume = false) {
+  if (activeTrainingKey) return;
+  const key = curKey();
+  if (!key) return;
+  const chain = getTrainingChain(key, resume);
+  trainingChain = chain;
+  chainIndex = 0;
+  runNextInChain();
+}
+
+async function runNextInChain() {
+  if (chainIndex >= trainingChain.length) {
+    trainingChain = []; chainIndex = 0;
+    renderControls(); renderLessons(); renderBannerSchema(); saveState();
+    return;
+  }
+  const { key, resume } = trainingChain[chainIndex];
+  chainIndex++;
+  const info = getLessonInfo(key);
+  if (!info || !info.lesson) { runNextInChain(); return; }
+
+  activeTrainingKey = key;
+  const chainLabel = trainingChain.length > 1 ? ` (${chainIndex}/${trainingChain.length})` : '';
+  info.lesson.status = resume ? `продолжение...${chainLabel}` : `запуск RL${chainLabel}`;
+  info.lesson.metrics = info.lesson.metrics || {};
+  renderControls(); renderLessons(); renderBannerSchema(); saveState();
+
+  try {
+    const response = await fetch(`${TRAINING_API}/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        node: {
+          key,
+          role: info.role,
+          classId: info.clsId,
+          lessonIdx: info.idx,
+          ppo: info.lesson.ppo,
+          train: info.lesson.train,
+          weights: info.lesson.weights,
+          curriculumParams: ensureScenario(info.lesson, info.clsId, info.branch),
+        },
+        resume,
+        inputFrom: getParentInfo(key),
+        description: getCustomDesc(info.clsId, info.branch, info.idx) || info.lesson.desc,
+      }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const job = await response.json();
+    activeJobId = job.id;
+    applyJobUpdate(key, job);
+    trainingTimer = setInterval(() => pollJob(key), 500);
+  } catch (e) {
+    info.lesson.status = 'сервер недоступен';
+    activeTrainingKey = null; activeJobId = null;
+    trainingChain = []; chainIndex = 0;
+    renderControls(); renderLessons(); renderBannerSchema(); saveState();
+    console.error('Ошибка запуска', e);
+  }
+}
+
+function getParentInfo(key) {
+  const [clsId, branch, idx] = parseKey(key);
+  const parentKey = getParentLessonKey(clsId, branch, idx);
+  if (!parentKey) return [];
+  const parentLesson = getLessonByKey(parentKey);
+  if (!parentLesson) return [];
+  return [{
+    nodeKey: parentKey,
+    role: branch,
+    best: parentLesson.best,
+    latest: parentLesson.latest,
+  }].filter(inp => inp.best || inp.latest);
+}
+
+async function pollJob(key) {
+  if (!activeJobId) return;
+  const myId = activeJobId;
+  try {
+    const res = await fetch(`${TRAINING_API}/jobs/${myId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const job = await res.json();
+    if (activeJobId !== myId) return;
+    applyJobUpdate(key, job);
+    if (job.status === 'completed' || job.status === 'stopped') stopTrainingTimer();
+  } catch (e) {
+    if (activeJobId !== myId) return;
+    if (e.message.startsWith('HTTP ')) {
+      const info = getLessonInfo(key);
+      if (info) { info.lesson.status = 'ошибка сервера'; renderControls(); renderLessons(); renderBannerSchema(); saveState(); }
+      trainingChain = []; chainIndex = 0; stopTrainingTimer();
+    }
+    console.warn('Poll error', e.message);
+  }
+}
+
+function applyJobUpdate(key, job) {
+  const info = getLessonInfo(key);
+  if (!info || !info.lesson) return;
+  const l = info.lesson;
+  const pct = Math.round((job.progress || 0) * 100);
+  l.status = job.status === 'completed' ? `завершено (${job.totalEpisodes || job.completed} эп.)`
+    : job.status === 'stopped' ? `остановлено (${job.totalEpisodes || job.completed} эп.)`
+    : (job.resumeFrom || 0) > 0 ? `продолжение с эп. ${job.resumeFrom} — ${pct}%`
+    : `обучается ${pct}%`;
+  l.metrics = {
+    reward: job.reward, bestReward: job.bestReward, delta: job.delta,
+    loss: job.loss, emaReward: job.emaReward, progress: job.progress,
+  };
+  l.completed = job.completed;
+  l.resumeFrom = job.resumeFrom || 0;
+  l.totalEpisodes = job.totalEpisodes || job.completed;
+  l.latest = job.artifacts?.latest || l.latest;
+  l.best = job.artifacts?.best || l.best;
+  renderControls(); renderLessons(); renderBannerSchema(); saveState();
+}
+
+function stopTraining() {
+  const key = activeTrainingKey;
+  trainingChain = []; chainIndex = 0;
+  if (!key) return;
+  if (activeJobId) {
+    fetch(`${TRAINING_API}/jobs/${activeJobId}/stop`, { method: 'POST' }).catch(()=>{});
+  }
+  const info = getLessonInfo(key);
+  if (info && info.lesson && !info.lesson.status.includes('заверш')) {
+    info.lesson.status = 'остановлено';
+    renderControls(); renderLessons(); renderBannerSchema(); saveState();
+  }
+  stopTrainingTimer();
+}
+
+function stopTrainingTimer() {
+  if (trainingTimer) clearInterval(trainingTimer);
+  trainingTimer = null;
+  activeTrainingKey = null;
+  activeJobId = null;
+  if (chainIndex < trainingChain.length) { runNextInChain(); }
+  else { trainingChain = []; chainIndex = 0; renderControls(); saveState(); }
+}
+
+async function resetTraining() {
+  const key = curKey();
+  const info = getLessonInfo(key);
+  if (!info || !info.lesson || activeTrainingKey === key) return;
+  try {
+    await fetch(`${TRAINING_API}/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: key, role: info.role }),
+    });
+  } catch(_) {}
+  const l = info.lesson;
+  l.metrics = {}; l.completed = 0; l.totalEpisodes = 0; l.resumeFrom = 0;
+  l.latest = null; l.best = null; l.status = 'готов к запуску';
+  renderControls(); renderLessons(); renderBannerSchema(); saveState();
+}
+
+function openPreview() {
+  const key = curKey();
+  const info = getLessonInfo(key);
+  if (!info) return;
+  const payload = {
+    version: 1, nodeKey: key, title: info.lesson.title,
+    classId: info.clsId, role: info.role,
+    policyMode: 'checkpoint', latest: info.lesson.latest, best: info.lesson.best,
+  };
+  try { localStorage.setItem('polygon3d.previewNode.v1', JSON.stringify(payload)); } catch(_) {}
+  window.open('simulator.html?previewNode=1', 'polygon3d-preview');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TXT TEMPLATE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+function getCustomDescKey() { return `training.desc.${currentClass}.${currentBranch}.${currentLesson}`; }
+
+function getCustomDesc(clsId, branch, idx) {
+  try { return localStorage.getItem(`training.desc.${clsId}.${branch}.${idx}`); } catch(_) { return null; }
+}
+
+function downloadTemplate() {
+  const lesson = getCurLesson();
+  if (!lesson) return;
+  const w = lesson.weights;
+  const custom = getCustomDesc(currentClass, currentBranch, currentLesson);
+  const text = `[ЗАГОЛОВОК]
+${lesson.title}
+
+[ОПИСАНИЕ]
+${custom || lesson.desc}
+
+[УСЛОВИЯ]
+Класс: ${currentClass}
+Ветка: ${currentBranch}
+Урок: ${currentLesson + 1}
+Полигон: ${getCls(currentClass).polygon}
+
+[КРИТЕРИИ]
+Награда: ${lesson.metrics?.reward ?? '-'}
+Прогресс: ${lesson.metrics?.progress != null ? Math.round(lesson.metrics.progress*100)+'%' : '-'}
+
+[ВЕСА]
+прогресс: ${w.progress}
+точка: ${w.waypoint}
+точность: ${w.precision}
+высота: ${w.altitude}
+время: ${w.time}
+авария: ${w.crash}
+Vстаб: ${w.vzStability ?? 0.05}
+Курс: ${w.headingStability ?? 0.05}
+Тангаж: ${w.pitchStability ?? 0.05}
+Vгор: ${w.speedStability ?? 0.05}
+
+[ПАРАМЕТРЫ]
+Эпизоды: ${lesson.train.episodes}
+LR: ${lesson.ppo.lr}
+
+[СЦЕНАРИЙ]
+dspeed: ${lesson.curriculumParams?.dspeed ?? 160}
+aspeed: ${lesson.curriculumParams?.aspeed ?? 250}
+ndrones: ${lesson.curriculumParams?.ndrones ?? 1}
+nanti: ${lesson.curriculumParams?.nanti ?? 0}
+camrange: ${lesson.curriculumParams?.camrange ?? 2500}
+arange: ${lesson.curriculumParams?.arange ?? 1000}
+adelay: ${lesson.curriculumParams?.adelay ?? 0}
+timeLimit: ${lesson.curriculumParams?.timeLimit ?? 90}
+policyMode: ${lesson.curriculumParams?.policyMode ?? 'flight-school'}`;
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lesson_c${currentClass}_${currentBranch}_l${currentLesson+1}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function uploadTemplate(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    var text = e.target.result.replace(/\r\n/g, '\n');
+    localStorage.setItem(getCustomDescKey(), text);
+    const lesson = getCurLesson();
+    console.log('[uploadTemplate] lesson:', lesson);
+    if (!lesson) { console.log('[uploadTemplate] NO LESSON'); return; }
+
+    // [ЗАГОЛОВОК]
+    const titleMatch = text.match(/\[ЗАГОЛОВОК\]\n([^\n]+)/);
+    console.log('[uploadTemplate] titleMatch:', titleMatch);
+    if (titleMatch) { lesson.title = titleMatch[1].trim(); console.log('[uploadTemplate] title set to:', lesson.title); }
+
+    // [ОПИСАНИЕ]
+    const descMatch = text.match(/\[ОПИСАНИЕ\]\n([\s\S]*?)(?=\n\[|\n*$)/);
+    if (descMatch) lesson.desc = descMatch[1].trim();
+
+    // [ВЕСА]
+    const wMatch = text.match(/\[ВЕСА\]\n([\s\S]*?)(?=\n\[|\n*$)/);
+    if (wMatch) {
+      wMatch[1].split('\n').forEach(line => {
+        const parts = line.trim().match(/(\S+)\s*:\s*([\d.]+)/);
+        if (parts) {
+          var wk = parts[1], wv = Number(parts[2]);
+          if (wk === 'Vстаб') wk = 'vzStability';
+          if (wk === 'Курс') wk = 'headingStability';
+          if (wk === 'Тангаж') wk = 'pitchStability';
+          if (wk === 'Vгор') wk = 'speedStability';
+          if (lesson.weights[wk] !== undefined) lesson.weights[wk] = wv;
+        }
+      });
+    }
+
+    // [ПАРАМЕТРЫ]
+    const epMatch = text.match(/Эпизоды:\s*(\d+)/);
+    const lrMatch = text.match(/LR:\s*([\d.eE+-]+)/);
+    if (epMatch) lesson.train.episodes = Number(epMatch[1]);
+    if (lrMatch) lesson.ppo.lr = Number(lrMatch[1]);
+
+    // [СЦЕНАРИЙ]
+    const sMatch = text.match(/\[СЦЕНАРИЙ\]\n([\s\S]*?)(?=\n*$)/);
+    if (sMatch) {
+      lesson.curriculumParams = lesson.curriculumParams || {};
+      sMatch[1].split('\n').forEach(line => {
+        const parts = line.trim().match(/(\S+)\s*:\s*([\d.]+|[\w-]+)/);
+        if (parts) {
+          const key = parts[1], val = parts[2];
+          lesson.curriculumParams[key] = isNaN(Number(val)) ? val : Number(val);
+        }
+      });
+    }
+
+    lesson.templateWeights = { ...lesson.weights };
+
+    renderControls(); renderLessons(); renderCenterDetail();
+    saveState();
+  };
+  reader.readAsText(file);
+}
+
+function resetTemplate() {
+  localStorage.removeItem(getCustomDescKey());
+  renderControls(); renderLessons(); renderCenterDetail();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+loadState();
+renderClasses(); renderLessons(); renderBannerSchema(); renderControls();
+
+// Bind buttons
+document.getElementById('btnPreview')?.addEventListener('click', openPreview);
+// Agent chips
+(function initAgentChips() {
+  var chips = document.querySelectorAll('.agent-chip');
+  function syncChips() {
+    chips.forEach(function(c) {
+      c.classList.toggle('active', c.dataset.agent === currentBranch);
+    });
+  }
+  chips.forEach(function(c) {
+    c.addEventListener('click', function() {
+      var agent = c.dataset.agent;
+      if (agent === currentBranch) return;
+      if (agent === 'joint') { currentClass = 5; currentLesson = 0; }
+      else { currentClass = 1; currentLesson = 0; }
+      currentBranch = agent;
+      syncChips();
+      renderClasses(); renderLessons(); renderBannerSchema(); renderControls();
+      saveState();
+    });
+  });
+  syncChips();
+})();
+// ── template buttons are now attached in renderCenterDetail ──
+document.getElementById('templateUpload').addEventListener('change', (e) => {
+  if (e.target.files[0]) uploadTemplate(e.target.files[0]);
+});
+
+// Sync from training.html (same localStorage key)
+window.addEventListener('storage', function(e) {
+  if (e.key === STORAGE_KEY && e.newValue) {
+    var changedData = JSON.parse(e.newValue);
+    if (changedData.lessons) {
+      CLASSES.forEach(function(cls) {
+        if (cls.mode === 'split') {
+          ['droneLessons','antiLessons'].forEach(function(key) {
+            cls[key].forEach(function(l, i) {
+              var k = lessonKey(cls.id, key==='antiLessons'?'anti':'drone', i);
+              var s = changedData.lessons[k];
+              if (s) Object.assign(l, s);
+            });
+          });
+        } else {
+          cls.droneLessons.forEach(function(l, i) {
+            var k = lessonKey(cls.id, 'joint', i);
+            var s = changedData.lessons[k];
+            if (s) Object.assign(l, s);
+          });
+        }
+      });
+    }
+    if (changedData.currentClass) currentClass = changedData.currentClass;
+    if (changedData.currentBranch && ['drone','anti','joint'].indexOf(changedData.currentBranch) !== -1) {
+      currentBranch = changedData.currentBranch;
+    }
+    renderClasses(); renderLessons(); renderBannerSchema(); renderControls();
+  }
+});
+</script>
+</body>
+</html>
+<!-- EOF -->

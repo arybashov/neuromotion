@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ПИД АГЕНТ — исходные данные</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0e0e10; color: #ccc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+      font-size: 13px;
+    }
+
+    header {
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 16px; color: #e8a830; font-weight: 600; margin-bottom: 4px; }
+    header p  { font-size: 12px; color: #666; margin-bottom: 6px; line-height: 1.4; }
+
+    .page-body {
+      flex: 1; overflow: hidden; display: flex; flex-direction: column;
+    }
+
+    .tabs {
+      display: flex; gap: 0; flex-shrink: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      background: #09090b;
+    }
+    .tab-btn {
+      padding: 10px 24px; font-size: 11px; font-family: "SF Mono","Fira Code",monospace;
+      color: #666; cursor: pointer; border: none; background: none;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      transition: color 0.12s, background 0.12s;
+    }
+    .tab-btn:hover { color: #aaa; background: rgba(255,255,255,0.03); }
+    .tab-btn.active {
+      color: #e8a830; background: rgba(232,168,48,0.06);
+      box-shadow: inset 0 -2px 0 #e8a830;
+    }
+
+    .tab-content {
+      flex: 1; overflow-y: auto; padding: 10px;
+      display: none;
+    }
+    .tab-content.active { display: block; }
+
+    .tab-inner { display: flex; gap: 12px; align-items: flex-start; }
+    .tab-col { flex: 1; min-width: 0; }
+    .tab-col {
+      border: 1px solid rgba(91,163,232,0.25);
+      border-radius: 6px; padding: 8px 10px;
+      background: rgba(91,163,232,0.04);
+      box-shadow: 0 0 8px rgba(91,163,232,0.12);
+      transition: box-shadow 0.25s ease;
+    }
+    .tab-col:hover {
+      box-shadow: 0 0 14px rgba(91,163,232,0.35);
+    }
+    .tab-col.media { flex: 0 0 240px; position: sticky; top: 0; }
+    .tab-col.media video {
+      width: 100%; display: block; border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .tab-col.media .video-label {
+      font-size: 11px; font-family: "SF Mono","Fira Code",monospace;
+      color: #555; text-align: center; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 4px 0 10px;
+    }
+
+    .param-group {
+      margin-bottom: 10px;
+    }
+    .param-group h2 {
+      font-size: 12px; font-family: "SF Mono","Fira Code",monospace;
+      color: #e8a830; text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 4px; padding-bottom: 2px;
+      border-bottom: 1px solid rgba(91,163,232,0.12);
+    }
+    .param-group h2.is-blue { color: #5ba3e8; }
+    .param-row {
+      display: flex; align-items: center; gap: 4px;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .param-row label {
+      width: 120px; flex-shrink: 0;
+      font-size: 12px; color: #888; font-family: "SF Mono","Fira Code",monospace;
+    }
+    .param-row label .sym {
+      color: #5ba3e8; font-size: 11px; margin-left: 2px;
+    }
+    .param-row input {
+      flex: 1; max-width: 95px;
+      background: #151518; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px; padding: 3px 6px;
+      color: #ccc; font-size: 11px; font-family: "SF Mono","Fira Code",monospace;
+    }
+    .param-row input:focus {
+      outline: none; border-color: rgba(91,163,232,0.4);
+    }
+    .param-row .note {
+      font-size: 10px; color: #555; margin-left: auto;
+    }
+
+    .tab-col.state label { width: 108px; }
+    .tab-col.state input { max-width: 80px; }
+    .tab-col.state .note { max-width: 40px; text-align: right; }
+
+    .section-desc {
+      font-size: 11px; color: #555; margin-bottom: 4px; line-height: 1.3;
+    }
+
+    @media (max-width: 900px) {
+      .tab-inner { flex-wrap: wrap; }
+      .tab-col { flex: 1 1 45%; }
+      .tab-col.media { flex: 1 1 100%; }
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="home" href="index.html">Главная</a>
+  <a href="agents.html">Агенты</a>
+  <a class="active" href="agent-packages.html">ПИД АГЕНТ</a>
+  <a href="curriculum.html">Программа</a>
+  <a href="agent-training.html">2D Тренинг</a>
+  <a href="agent-training-3d.html">3D Тренинг</a>
+  <a href="Poligon.html">Полигон</a>
+  <a href="simulator.html">Демонстратор</a>
+  <a href="UTC.html">УТЦ</a>
+  <a href="diagram-pipeline.html">Пайплайн</a>
+  <a href="training.html">Обучение</a>
+  <a href="results.html">Модели</a>
+  <a href="paperplane.html">PaperPlane</a>
+  <a href="trials.html">Испытания</a>
+  <a href="licenses.html">Лицензия</a>
+</nav>
+
+<header>
+  <h1>ПИД АГЕНТ — пакеты исходных данных</h1>
+  <p>Шаблоны параметров для заполнения оператором перед запуском обучения. Значения можно редактировать.</p>
+</header>
+
+<div class="page-body">
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="quad">Квадрокоптер</button>
+  <button class="tab-btn" data-tab="wing">БПЛА с крылом (Aerosonde)</button>
+</div>
+
+<div class="tab-content active" id="tab-quad">
+  <div class="tab-inner">
+    <div class="tab-col">
+      <div class="param-group">
+        <h2 class="is-blue">Масса и инерция</h2>
+        <div class="section-desc">Твёрдое тело, 6 степеней свободы</div>
+        <div class="param-row"><label>Масса <span class="sym">m</span></label><input type="text" value="1.5"><span class="note">кг</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Ixx</span></label><input type="text" value="0.010"><span class="note">кг·м2</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Iyy</span></label><input type="text" value="0.010"><span class="note">кг·м2</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Izz</span></label><input type="text" value="0.018"><span class="note">кг·м2</span></div>
+        <div class="param-row"><label>Диаметр рамы (motor-to-motor)</label><input type="text" value="0.45"><span class="note">м</span></div>
+        <div class="param-row"><label>Плечо <span class="sym">l</span> (центр → мотор)</label><input type="text" value="0.175"><span class="note">м</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Двигатели и винты</h2>
+        <div class="section-desc">Привод — 4 бесколлекторных мотора,<br>винты фиксированного шага</div>
+        <div class="param-row"><label>Макс. тяга мотора <span class="sym">T_max</span></label><input type="text" value="4.5"><span class="note">Н (×4)</span></div>
+        <div class="param-row"><label>Макс. мощность мотора</label><input type="text" value="75"><span class="note">Вт</span></div>
+        <div class="param-row"><label>KV мотора</label><input type="text" value="920"><span class="note">об/В</span></div>
+        <div class="param-row"><label>Винт</label><input type="text" value="10×4.5"><span class="note">дюймы</span></div>
+        <div class="param-row"><label>Постоянная тяги <span class="sym">k_f</span></label><input type="text" value="4.3e-6"><span class="note">Н·с²/р²</span></div>
+        <div class="param-row"><label>Постоянная момента <span class="sym">k_m</span></label><input type="text" value="1.1e-7"><span class="note">Н·м·с²/р²</span></div>
+        <div class="param-row"><label>Макс. угл. скорость винта</label><input type="text" value="995"><span class="note">р/с</span></div>
+        <div class="param-row"><label>Аккумулятор</label><input type="text" value="4S LiPo 14.8 В"><span class="note">5.2 А·ч</span></div>
+      </div>
+    </div>
+    <div class="tab-col">
+      <div class="param-group">
+        <h2 class="is-blue">Аэродинамика (корпус)</h2>
+        <div class="param-row"><label>Коэффициент лоб. сопр. <span class="sym">Cd</span></label><input type="text" value="0.02"><span class="note">—</span></div>
+        <div class="param-row"><label>Фронтальная площадь</label><input type="text" value="0.025"><span class="note">м²</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Контроллер управления</h2>
+        <div class="section-desc">ПИД-регуляторы по крену, тангажу, курсу и высоте</div>
+        <div class="param-row"><label>Макс. угол крена <span class="sym">φ_max</span></label><input type="text" value="45"><span class="note">°</span></div>
+        <div class="param-row"><label>Макс. угол тангажа <span class="sym">θ_max</span></label><input type="text" value="45"><span class="note">°</span></div>
+        <div class="param-row"><label>Макс. скорость рысканья <span class="sym">ψ̇_max</span></label><input type="text" value="150"><span class="note">°/с</span></div>
+        <div class="param-row"><label>Макс. перегрузка <span class="sym">n_max</span></label><input type="text" value="4"><span class="note">G</span></div>
+        <div class="param-row"><label>Крейсерская скорость</label><input type="text" value="14"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Макс. скорость</label><input type="text" value="18"><span class="note">м/с</span></div>
+      </div>
+    </div>
+    <div class="tab-col media">
+      <video src="assets/splash/drone_8.mp4" autoplay muted loop playsinline></video>
+      <div class="video-label">ОБЗОРНЫЙ ВИД БПЛА Aerosonde</div>
+      <video src="assets/splash/drone_3.mp4" autoplay muted loop playsinline></video>
+      <div class="video-label">ОБЗОРНЫЙ ВИД БПЛА Aerosonde</div>
+      <video src="assets/splash/drone_7.mp4" autoplay muted loop playsinline></video>
+      <div class="video-label">ОБЗОРНЫЙ ВИД БПЛА Aerosonde</div>
+    </div>
+    <div class="tab-col state">
+      <div class="param-group">
+        <h2 class="is-blue">Положение / навигация</h2>
+        <div class="section-desc">GPS-координаты, высота, курс,<br>— опорная геометрия</div>
+        <div class="param-row"><label>Широта <span class="sym">φ</span></label><input type="text" value="55.751244"><span class="note">°N</span></div>
+        <div class="param-row"><label>Долгота <span class="sym">λ</span></label><input type="text" value="37.618423"><span class="note">°E</span></div>
+        <div class="param-row"><label>Высота барометрическая <span class="sym">H_b</span></label><input type="text" value="120"><span class="note">м</span></div>
+        <div class="param-row"><label>Высота стартовая <span class="sym">H_rel</span></label><input type="text" value="100"><span class="note">м</span></div>
+        <div class="param-row"><label>Курс истинный <span class="sym">ψ_true</span></label><input type="text" value="315"><span class="note">°</span></div>
+        <div class="param-row"><label>Курс путевой <span class="sym">ψ_track</span></label><input type="text" value="312"><span class="note">°</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Скорости</h2>
+        <div class="section-desc">Воздушные, путевые, угловые скорости</div>
+        <div class="param-row"><label>Воздушная скорость <span class="sym">V_a</span> TAS</label><input type="text" value="14"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Воздушная скорость <span class="sym">V_i</span> IAS</label><input type="text" value="13"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Путевая скорость <span class="sym">V_g</span> GS</label><input type="text" value="14.2"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Вертикальная скорость <span class="sym">V_v</span></label><input type="text" value="0.5"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Угол сноса (drift) <span class="sym">β</span></label><input type="text" value="2.1"><span class="note">°</span></div>
+        <div class="param-row"><label>Путевой угол <span class="sym">χ</span></label><input type="text" value="314"><span class="note">°</span></div>
+      </div>
+    </div>
+    <div class="tab-col state">
+      <div class="param-group">
+        <h2 class="is-blue">Ориентация (аттитюд)</h2>
+        <div class="section-desc">Углы и угловые скорости по осям ССК</div>
+        <div class="param-row"><label>Крен <span class="sym">φ</span></label><input type="text" value="2.3"><span class="note">°</span></div>
+        <div class="param-row"><label>Тангаж <span class="sym">θ</span></label><input type="text" value="3.1"><span class="note">°</span></div>
+        <div class="param-row"><label>Рыскание <span class="sym">ψ</span></label><input type="text" value="314.5"><span class="note">°</span></div>
+        <div class="param-row"><label>Угл. скорость крена <span class="sym">p</span></label><input type="text" value="0.05"><span class="note">р/с</span></div>
+        <div class="param-row"><label>Угл. скорость тангажа <span class="sym">q</span></label><input type="text" value="0.03"><span class="note">р/с</span></div>
+        <div class="param-row"><label>Угл. скорость рысканья <span class="sym">r</span></label><input type="text" value="0.08"><span class="note">р/с</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Ускорения</h2>
+        <div class="param-row"><label>Продольное <span class="sym">a_x</span></label><input type="text" value="0.12"><span class="note">м/с2</span></div>
+        <div class="param-row"><label>Боковое <span class="sym">a_y</span></label><input type="text" value="0.04"><span class="note">м/с2</span></div>
+        <div class="param-row"><label>Вертикальное <span class="sym">a_z</span></label><input type="text" value="9.81"><span class="note">м/с2</span></div>
+        <div class="param-row"><label>Перегрузка <span class="sym">n</span></label><input type="text" value="5.07"><span class="note">G</span></div>
+      </div>
+      <div class="param-group">
+        <h2 class="is-blue">Масса / энергия</h2>
+        <div class="param-row"><label>Масса текущая <span class="sym">m_cur</span></label><input type="text" value="1.48"><span class="note">кг</span></div>
+        <div class="param-row"><label>Заряд АКБ <span class="sym">SOC</span></label><input type="text" value="87"><span class="note">%</span></div>
+        <div class="param-row"><label>Напряжение борта <span class="sym">U_bus</span></label><input type="text" value="15.2"><span class="note">В</span></div>
+        <div class="param-row"><label>Ток потребления <span class="sym">I_bus</span></label><input type="text" value="12.5"><span class="note">А</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-wing">
+  <div class="tab-inner">
+    <div class="tab-col">
+      <div class="param-group">
+        <h2 class="is-blue">Масса и инерция</h2>
+        <div class="section-desc">Твёрдое тело, 6 степеней свободы</div>
+        <div class="param-row"><label>Масса <span class="sym">m</span></label><input type="text" value="13.5"><span class="note">кг</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Ixx</span></label><input type="text" value="0.8244"><span class="note">кг·м2</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Iyy</span></label><input type="text" value="1.135"><span class="note">кг·м2</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Izz</span></label><input type="text" value="1.759"><span class="note">кг·м2</span></div>
+        <div class="param-row"><label>Момент инерции <span class="sym">Ixz</span></label><input type="text" value="0.1204"><span class="note">кг·м2</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Геометрия крыла</h2>
+        <div class="param-row"><label>Площадь крыла <span class="sym">S</span></label><input type="text" value="0.55"><span class="note">м²</span></div>
+        <div class="param-row"><label>Размах <span class="sym">b</span></label><input type="text" value="2.895"><span class="note">м</span></div>
+        <div class="param-row"><label>САХ <span class="sym">c</span></label><input type="text" value="0.1899"><span class="note">м</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Двигатели и винты</h2>
+        <div class="section-desc">Тяговая группа — 1× ДВС / эл. мотор + толкающий винт</div>
+        <div class="param-row"><label>Тип двигателя</label><input type="text" value="эл. бесколлект."><span class="note">—</span></div>
+        <div class="param-row"><label>Количество двигателей</label><input type="text" value="1"><span class="note">шт</span></div>
+        <div class="param-row"><label>Макс. тяга <span class="sym">T_max</span></label><input type="text" value="64"><span class="note">Н</span></div>
+        <div class="param-row"><label>Мощность</label><input type="text" value="2400"><span class="note">Вт</span></div>
+        <div class="param-row"><label>KV мотора</label><input type="text" value="400"><span class="note">об/В</span></div>
+        <div class="param-row"><label>Винт</label><input type="text" value="16×10"><span class="note">дюймы</span></div>
+        <div class="param-row"><label>Постоянная тяги <span class="sym">k_f</span></label><input type="text" value="8.2e-5"><span class="note">Н·с²/р²</span></div>
+        <div class="param-row"><label>Постоянная момента <span class="sym">k_m</span></label><input type="text" value="2.4e-6"><span class="note">Н·м·с²/р²</span></div>
+        <div class="param-row"><label>Макс. обороты винта</label><input type="text" value="7500"><span class="note">об/мин</span></div>
+      </div>
+    </div>
+    <div class="tab-col">
+      <div class="param-group">
+        <h2 class="is-blue">Аэродинамические коэффициенты</h2>
+        <div class="section-desc">Поляра самолёта, моменты и производные</div>
+        <div class="param-row"><label><span class="sym">CL_max</span></label><input type="text" value="1.2"><span class="note">—</span></div>
+        <div class="param-row"><label>Угол сваливания <span class="sym">α_stall</span></label><input type="text" value="15"><span class="note">°</span></div>
+        <div class="param-row"><label>Паразитное сопротивление <span class="sym">CD0</span></label><input type="text" value="0.043"><span class="note">—</span></div>
+        <div class="param-row"><label>Фактор Освальда <span class="sym">e</span></label><input type="text" value="0.9"><span class="note">—</span></div>
+        <div class="param-row"><label>Аэродинам. качество <span class="sym">L/D_max</span></label><input type="text" value="17"><span class="note">—</span></div>
+        <div class="param-row"><label><span class="sym">Cm_α</span></label><input type="text" value="-0.45"><span class="note">—</span></div>
+        <div class="param-row"><label><span class="sym">Cm_δe</span></label><input type="text" value="-0.65"><span class="note">—</span></div>
+        <div class="param-row"><label><span class="sym">Cl_β</span></label><input type="text" value="-0.12"><span class="note">—</span></div>
+        <div class="param-row"><label><span class="sym">Cn_β</span></label><input type="text" value="0.06"><span class="note">—</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Контроллер управления</h2>
+        <div class="section-desc">Рулевые поверхности и ПИД-регуляторы</div>
+        <div class="param-row"><label>Макс. отклонение элеронов <span class="sym">δa_max</span></label><input type="text" value="25"><span class="note">°</span></div>
+        <div class="param-row"><label>Макс. отклонение РВ <span class="sym">δe_max</span></label><input type="text" value="25"><span class="note">°</span></div>
+        <div class="param-row"><label>Макс. отклонение РН <span class="sym">δr_max</span></label><input type="text" value="20"><span class="note">°</span></div>
+        <div class="param-row"><label>Макс. перегрузка <span class="sym">n_max</span></label><input type="text" value="5"><span class="note">G</span></div>
+        <div class="param-row"><label>Крейсерская скорость</label><input type="text" value="28"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Макс. скорость (dash)</label><input type="text" value="36"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Скорость сваливания <span class="sym">V_stall</span></label><input type="text" value="13.5"><span class="note">м/с (расч.)</span></div>
+        <div class="param-row"><label>Потолок</label><input type="text" value="4000"><span class="note">м</span></div>
+      </div>
+    </div>
+    <div class="tab-col media">
+      <video src="assets/splash/drone_5.mp4" autoplay muted loop playsinline></video>
+      <div class="video-label">ОБЗОРНЫЙ ВИД БПЛА Aerosonde</div>
+      <video src="assets/splash/drone_3.mp4" autoplay muted loop playsinline></video>
+      <div class="video-label">ОБЗОРНЫЙ ВИД БПЛА Aerosonde</div>
+      <video src="assets/splash/drone_7.mp4" autoplay muted loop playsinline></video>
+      <div class="video-label">ОБЗОРНЫЙ ВИД БПЛА Aerosonde</div>
+    </div>
+    <div class="tab-col state">
+      <div class="param-group">
+        <h2 class="is-blue">Положение / навигация</h2>
+        <div class="section-desc">GPS-координаты, высота, курс,<br>— опорная геометрия</div>
+        <div class="param-row"><label>Широта <span class="sym">φ</span></label><input type="text" value="55.751244"><span class="note">°N</span></div>
+        <div class="param-row"><label>Долгота <span class="sym">λ</span></label><input type="text" value="37.618423"><span class="note">°E</span></div>
+        <div class="param-row"><label>Высота барометрическая <span class="sym">H_b</span></label><input type="text" value="350"><span class="note">м</span></div>
+        <div class="param-row"><label>Высота стартовая <span class="sym">H_rel</span></label><input type="text" value="320"><span class="note">м</span></div>
+        <div class="param-row"><label>Курс истинный <span class="sym">ψ_true</span></label><input type="text" value="270"><span class="note">°</span></div>
+        <div class="param-row"><label>Курс путевой <span class="sym">ψ_track</span></label><input type="text" value="268"><span class="note">°</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Скорости</h2>
+        <div class="section-desc">Воздушные, путевые, угловые скорости</div>
+        <div class="param-row"><label>Воздушная скорость <span class="sym">V_a</span> TAS</label><input type="text" value="28"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Воздушная скорость <span class="sym">V_i</span> IAS</label><input type="text" value="26"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Путевая скорость <span class="sym">V_g</span> GS</label><input type="text" value="27.5"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Вертикальная скорость <span class="sym">V_v</span></label><input type="text" value="1.8"><span class="note">м/с</span></div>
+        <div class="param-row"><label>Угол сноса (drift) <span class="sym">β</span></label><input type="text" value="3.5"><span class="note">°</span></div>
+        <div class="param-row"><label>Путевой угол <span class="sym">χ</span></label><input type="text" value="269"><span class="note">°</span></div>
+      </div>
+    </div>
+    <div class="tab-col state">
+      <div class="param-group">
+        <h2 class="is-blue">Ориентация (аттитюд)</h2>
+        <div class="section-desc">Углы и угловые скорости по осям ССК</div>
+        <div class="param-row"><label>Крен <span class="sym">φ</span></label><input type="text" value="1.8"><span class="note">°</span></div>
+        <div class="param-row"><label>Тангаж <span class="sym">θ</span></label><input type="text" value="4.2"><span class="note">°</span></div>
+        <div class="param-row"><label>Рыскание <span class="sym">ψ</span></label><input type="text" value="269.8"><span class="note">°</span></div>
+        <div class="param-row"><label>Угл. скорость крена <span class="sym">p</span></label><input type="text" value="0.08"><span class="note">р/с</span></div>
+        <div class="param-row"><label>Угл. скорость тангажа <span class="sym">q</span></label><input type="text" value="0.06"><span class="note">р/с</span></div>
+        <div class="param-row"><label>Угл. скорость рысканья <span class="sym">r</span></label><input type="text" value="0.04"><span class="note">р/с</span></div>
+      </div>
+      <div class="param-group">
+        <h2>Ускорения</h2>
+        <div class="param-row"><label>Продольное <span class="sym">a_x</span></label><input type="text" value="0.25"><span class="note">м/с2</span></div>
+        <div class="param-row"><label>Боковое <span class="sym">a_y</span></label><input type="text" value="0.06"><span class="note">м/с2</span></div>
+        <div class="param-row"><label>Вертикальное <span class="sym">a_z</span></label><input type="text" value="9.78"><span class="note">м/с2</span></div>
+        <div class="param-row"><label>Перегрузка <span class="sym">n</span></label><input type="text" value="4.05"><span class="note">G</span></div>
+      </div>
+      <div class="param-group">
+        <h2 class="is-blue">Масса / энергия</h2>
+        <div class="param-row"><label>Масса текущая <span class="sym">m_cur</span></label><input type="text" value="12.8"><span class="note">кг</span></div>
+        <div class="param-row"><label>Заряд АКБ <span class="sym">SOC</span></label><input type="text" value="72"><span class="note">%</span></div>
+        <div class="param-row"><label>Напряжение борта <span class="sym">U_bus</span></label><input type="text" value="22.4"><span class="note">В</span></div>
+        <div class="param-row"><label>Ток потребления <span class="sym">I_bus</span></label><input type="text" value="8.2"><span class="note">А</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

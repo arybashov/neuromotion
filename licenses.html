@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Лицензии — Полигон 3D</title>
+  <style>
+    :root { --green:#fff; --green-dim: rgba(91,163,232,0.6); }
+    body { background: var(--bg); }
+    .doc-link {
+      border: 1px solid rgba(91,163,232,0.35);
+      color: #e8a830 !important;
+      transition: box-shadow 0.25s ease;
+    }
+    .doc-link:hover {
+      background: rgba(91,163,232,0.1);
+      border-color: #5ba3e8;
+      color: #5ba3e8;
+      box-shadow: 0 0 10px rgba(91,163,232,0.3);
+    }
+    .lic-page {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+    }
+    header.docs-topbar h1 { color: #fff !important; }
+    .lic-page h1 {
+      font-family: var(--mono);
+      font-size: 18px;
+      color: #fff;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .lic-page > p {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: #5ba3e8;
+      margin-bottom: 20px;
+    }
+    .lic-tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(91,163,232,0.15);
+    }
+    .lic-tab {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--text-dim);
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .lic-tab:hover { color: #e8a830; }
+    .lic-tab.active {
+      color: #e8a830;
+      border-bottom-color: #e8a830;
+    }
+    .lic-card {
+      background: rgba(91,163,232,0.05) !important;
+      border: 1px solid rgba(91,163,232,0.3) !important;
+      border-radius: 4px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 8px rgba(91,163,232,0.1);
+      transition: box-shadow 0.25s ease;
+    }
+    .lic-card:hover {
+      box-shadow: 0 0 14px rgba(91,163,232,0.3);
+    }
+    .lic-calc {
+      background: rgba(91,163,232,0.06) !important;
+      border: 1px solid rgba(91,163,232,0.2) !important;
+      border-radius: 4px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .lic-card h2 {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .lic-card > p {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .lic-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .lic-table th {
+      text-align: left;
+      color: #e8a830;
+      letter-spacing: 0.1em;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(91,163,232,0.15);
+      font-weight: 400;
+    }
+    .lic-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(91,163,232,0.06);
+    }
+    .lic-table .disc-row {
+      background: rgba(232,168,48,0.06);
+    }
+    .lic-calc {
+      background: rgba(0,0,0,0.18);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .lic-calc h3 {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .calc-grid label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .calc-grid input,
+    .calc-grid .calc-input {
+      width: 100%;
+      background: var(--bg);
+      color: var(--green);
+      border: 1px solid rgba(91,163,232,0.35);
+      border-radius: 3px;
+      padding: 6px 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      outline: none;
+    }
+    .calc-grid input:focus {
+      border-color: var(--green);
+    }
+    .calc-result {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--green);
+      margin-top: 8px;
+    }
+    .lic-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      background: transparent;
+      color: var(--green);
+      border: 1px solid rgba(91,163,232,0.4);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      margin-top: 12px;
+    }
+    .lic-btn:hover {
+      background: rgba(91,163,232,0.08);
+      border-color: var(--green);
+    }
+    #subscribeBtn {
+      color: #e8a830 !important;
+      border-color: rgba(232,168,48,0.4) !important;
+    }
+    #buyBtn {
+      color: #e8a830 !important;
+      border-color: rgba(232,168,48,0.4) !important;
+    }
+    .lic-btn-outline {
+      color: var(--text);
+      border-color: rgba(91,163,232,0.25);
+    }
+    .lic-btn-outline:hover {
+      color: var(--green);
+      border-color: var(--green);
+    }
+    .lic-footnote {
+      font-family: var(--sans);
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .lic-footnote a {
+      color: var(--green);
+      text-decoration: none;
+    }
+    .lic-footnote a:hover {
+      text-decoration: underline;
+    }
+    .saas-section {
+      margin-top: 4px;
+    }
+    .saas-flex {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .lic-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(91,163,232,0.12);
+      color: var(--green);
+      padding: 2px 10px;
+      border-radius: 10px;
+    }
+    @media (max-width: 700px) {
+      .lic-page { padding: 16px; }
+      .calc-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body class="docs-body">
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a class="active" href="licenses.html">Лицензия</a>
+  </nav>
+  <header class="docs-topbar">
+    <h1>Лицензии для тестов и малых парков</h1>
+    <a class="doc-link" href="licenses.html" style="color:var(--green)">До 20 ед.</a>
+    <a class="doc-link" href="licenses-bulk.html">Крупные парки</a>
+  </header>
+
+  <main class="lic-page">
+    <p>Купите одну единицу или оформите подписку — стартуйте без больших вложений.</p>
+
+    <!-- Вкладки категорий -->
+    <div class="lic-tabs" id="categoryTabs">
+      <button class="lic-tab active" data-cat="warehouse">СПЕЦИАЛЬНАЯ</button>
+	  <button class="lic-tab active" data-cat="warehouse">Склад</button>
+      <button class="lic-tab" data-cat="street">Уборочная</button>
+      <button class="lic-tab" data-cat="road">Дорожная</button>
+      <button class="lic-tab" data-cat="industrial">Заводская</button>
+    </div>
+
+    <!-- Единичные лицензии -->
+    <div class="lic-card">
+      <h2>Единичные лицензии (бессрочные)</h2>
+      <p>Цена за 1 единицу техники. Поддержка 1 год включена, далее 10% от стоимости в год.</p>
+      <table class="lic-table" id="singleTable">
+        <thead>
+          <tr><th>Категория</th><th>Цена за 1 ед.</th><th>Скидка 5-9 ед.</th><th>Скидка 10-19 ед.</th></tr>
+        </thead>
+        <tbody id="singleBody"></tbody>
+      </table>
+      <div class="lic-calc">
+        <h3>Калькулятор стоимости</h3>
+        <div class="calc-grid">
+          <div>
+            <label>Количество единиц (1-19)</label>
+            <input type="number" id="calcQty" min="1" max="19" value="1">
+          </div>
+          <div>
+            <label>Скидка</label>
+            <input class="calc-input" id="calcDiscount" readonly value="0%">
+          </div>
+        </div>
+        <div class="calc-result" id="calcTotal">0 ₽</div>
+        <button class="lic-btn" id="buyBtn">Запросить счёт на 1 ед.</button>
+      </div>
+      <div class="lic-footnote">*При покупке от 5 до 19 единиц скидка применяется автоматически к каждой лицензии в заказе.</div>
+    </div>
+
+    <!-- Подписка SaaS -->
+    <div class="lic-card saas-section">
+      <h2>Подписка (SaaS) — помесячная оплата</h2>
+      <p>Гибкий формат для сезонной работы или пилотных проектов. Пауза в любой момент.</p>
+      <table class="lic-table">
+        <thead>
+          <tr><th>Категория</th><th>Ставка в месяц / 1 ед.</th><th>Особенности</th></tr>
+        </thead>
+        <tbody id="saasBody"></tbody>
+      </table>
+      <div class="saas-flex">
+        <button class="lic-btn" id="subscribeBtn">Оформить подписку</button>
+      </div>
+      <div class="lic-footnote" style="margin-top:10px">Для уборочной техники: при подписке на сезон (3 месяца) — скидка 20%.</div>
+    </div>
+
+    <div class="lic-footnote" style="text-align:center;margin-top:8px">
+      Парк более 20 машин? <a href="licenses-bulk.html">Посмотрите пакетные цены →</a>
+    </div>
+  </main>
+
+  <script>
+    const prices = { warehouse:150000, street:210000, road:250000, industrial:180000 };
+    const saas   = { warehouse:12000, street:18000, road:22000, industrial:15000 };
+    const names  = { warehouse:'Склад (погрузчики)', street:'Уборочная техника', road:'Дорожная техника', industrial:'Внутризаводские дороги' };
+    const saasNote = { warehouse:'Можно приостановить', street:'Сезонная скидка 20% на 3+ мес.', road:'Можно приостановить', industrial:'Можно приостановить' };
+    let currentCat = 'warehouse';
+
+    function render() {
+      const p = prices[currentCat];
+      document.getElementById('singleBody').innerHTML =
+        `<tr><td>${names[currentCat]}</td><td>${p.toLocaleString()} ₽</td><td>5%</td><td>12%</td></tr>`;
+      document.getElementById('saasBody').innerHTML =
+        `<tr><td>${names[currentCat]}</td><td>${saas[currentCat].toLocaleString()} ₽</td><td>${saasNote[currentCat]}</td></tr>`;
+      recalc();
+    }
+
+    function recalc() {
+      const qty = Math.max(1, Math.min(19, parseInt(document.getElementById('calcQty').value) || 1));
+      let disc = 0;
+      if (qty >= 5 && qty <= 9) disc = 5;
+      else if (qty >= 10) disc = 12;
+      document.getElementById('calcDiscount').value = disc + '%';
+      const total = prices[currentCat] * qty * (1 - disc/100);
+      document.getElementById('calcTotal').textContent = Math.round(total).toLocaleString() + ' ₽';
+      document.getElementById('buyBtn').textContent = 'Запросить счёт на ' + qty + ' ед.';
+    }
+
+    document.querySelectorAll('#categoryTabs .lic-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#categoryTabs .lic-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCat = btn.dataset.cat;
+        render();
+      });
+    });
+    document.getElementById('calcQty').addEventListener('input', recalc);
+    document.getElementById('buyBtn').addEventListener('click', () => {
+      const qty = document.getElementById('calcQty').value;
+      alert('Запрос на покупку:\nКатегория: ' + names[currentCat] + '\nКоличество: ' + qty + ' ед.\n\nМенеджер выставит счёт на почту.');
+    });
+    document.getElementById('subscribeBtn').addEventListener('click', () => {
+      alert('Оформление подписки SaaS\nКатегория: ' + names[currentCat] + '\nСтавка: ' + saas[currentCat].toLocaleString() + ' ₽/мес. за единицу\n\nСвяжемся для выбора количества и срока.');
+    });
+    render();
+  </script>
+</body>
+</html>

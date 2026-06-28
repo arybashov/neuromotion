@@ -1,0 +1,103 @@
+{
+  "updated": "2026-06-28T09:14:45.669Z",
+  "lessons": [
+    {
+      "key": "c1_drone_l0",
+      "class": 1,
+      "lessonIdx": 0,
+      "bestScore": 228.486,
+      "arrived": 1
+    },
+    {
+      "key": "c1_drone_l1",
+      "class": 1,
+      "lessonIdx": 1,
+      "bestScore": 219.986,
+      "arrived": 1
+    },
+    {
+      "key": "c1_drone_l2",
+      "class": 1,
+      "lessonIdx": 2,
+      "bestScore": 377.005,
+      "arrived": 1
+    },
+    {
+      "key": "c1_drone_l3",
+      "class": 1,
+      "lessonIdx": 3,
+      "bestScore": 407.792,
+      "arrived": 1
+    },
+    {
+      "key": "c2_drone_l0",
+      "class": 2,
+      "lessonIdx": 0,
+      "bestScore": 378.748,
+      "arrived": 1
+    },
+    {
+      "key": "c2_drone_l1",
+      "class": 2,
+      "lessonIdx": 1,
+      "bestScore": 407.076,
+      "arrived": 1
+    },
+    {
+      "key": "c3_drone_l0",
+      "class": 3,
+      "lessonIdx": 0,
+      "bestScore": 379.773,
+      "arrived": 1
+    },
+    {
+      "key": "c3_drone_l2",
+      "class": 3,
+      "lessonIdx": 2,
+      "bestScore": 296.664,
+      "arrived": 0.6666666666666666
+    },
+    {
+      "key": "c3_drone_l3",
+      "class": 3,
+      "lessonIdx": 3,
+      "bestScore": 427.896,
+      "arrived": 1
+    },
+    {
+      "key": "c3_drone_l4",
+      "class": 3,
+      "lessonIdx": 4,
+      "bestScore": 431.081,
+      "arrived": 1
+    },
+    {
+      "key": "c4_drone_l0",
+      "class": 4,
+      "lessonIdx": 0,
+      "bestScore": -124.369,
+      "arrived": 0.6666666666666666
+    },
+    {
+      "key": "c4_drone_l1",
+      "class": 4,
+      "lessonIdx": 1,
+      "bestScore": 401.255,
+      "arrived": 1
+    },
+    {
+      "key": "c4_drone_l2",
+      "class": 4,
+      "lessonIdx": 2,
+      "bestScore": 399.279,
+      "arrived": 1
+    },
+    {
+      "key": "c4_drone_l4",
+      "class": 4,
+      "lessonIdx": 4,
+      "bestScore": 410.644,
+      "arrived": 1
+    }
+  ]
+}

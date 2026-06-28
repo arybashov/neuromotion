@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Тренинг — Полигон UE5.7</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0e0e10; color: #ccc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+      font-size: 13px;
+    }
+
+    header {
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 16px; color: #eee; font-weight: 600; margin-bottom: 4px; padding-left: 5cm; }
+    header p  { font-size: 12px; color: #666; margin-bottom: 6px; line-height: 1.4; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; }
+    .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+    .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+    .body { display: flex; flex: 1; overflow: hidden; }
+
+    .graph-area { flex: 1; overflow: hidden; position: relative; padding: 20px; }
+
+    .left-panel {
+      width: calc(220px + 1cm); flex-shrink: 0;
+      background: #0b0b0d;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 7px;
+      margin: 10px 12px 4px; padding: 7px 10px;
+      background: none; border: 1px solid rgba(255,255,255,0.1);
+      color: #888; font-size: 12px; cursor: pointer; border-radius: 4px;
+      text-decoration: none; transition: color 0.12s, border-color 0.12s;
+      font-family: inherit;
+    }
+    .back-btn:hover { color: #ccc; border-color: rgba(255,255,255,0.22); }
+    .back-btn-arrow { font-size: 14px; }
+    .header-back-btn {
+      display: inline-block; margin: 0; padding: 5px 12px;
+      width: 220px; flex-shrink: 0;
+      background: rgba(232,168,48,0.08); border: 1px solid rgba(232,168,48,0.35);
+      color: #e8a830; font-size: 11px; cursor: pointer; border-radius: 4px;
+      text-decoration: none; transition: color 0.12s, border-color 0.12s;
+      font-family: inherit; text-align: center;
+    }
+    .header-back-btn:hover { color: #f0c040; border-color: rgba(232,168,48,0.6); }
+
+    .right-panel {
+      width: 300px; flex-shrink: 0;
+      background: #0b0b0d;
+      border-left: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .panel-section { display: flex; flex-direction: column; overflow: hidden; }
+    .panel-section.classes-section { flex: 1; overflow-y: auto; direction: rtl; }
+    .panel-section.classes-section > * { direction: ltr; }
+    .panel-section.lessons-section { flex: 1; overflow-y: auto; }
+    .panel-title {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+      color: #eee; text-transform: uppercase;
+      padding: 12px 14px 8px;
+    }
+
+    .class-item {
+      padding: 8px 14px; cursor: pointer;
+      border-top: 3px solid transparent;
+      transition: background 0.12s;
+    }
+    .class-item:hover { background: rgba(255,255,255,0.04); }
+    .class-item.active { background: rgba(255,255,255,0.05); }
+    .class-item-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 11px; font-weight: 500; color: #bbb; margin-bottom: 2px;
+    }
+    .class-item.active .class-item-name { color: #eee; }
+    .class-item-desc { font-size: 11px; color: #555; line-height: 1.4; }
+    .class-item.active .class-item-desc { color: #777; }
+    .class-item .class-badge {
+      display: inline-block;
+      font-size: 9px; font-family: "SF Mono", monospace;
+      color: #5ba3e8; border: 1px solid rgba(91,163,232,0.3);
+      border-radius: 3px; padding: 1px 6px; margin-right: 4px;
+    }
+
+    .lesson-item {
+      display: flex; gap: 10px; padding: 10px 14px;
+      border-top: 3px solid transparent;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer; transition: background 0.12s;
+    }
+    .lesson-item:hover { background: rgba(255,255,255,0.03); }
+    .lesson-item.active { background: rgba(255,255,255,0.06); }
+    .lesson-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+      background: rgba(255,255,255,0.1); color: #888;
+    }
+    .lesson-item.active .lesson-num { background: rgba(91,163,232,0.25); color: #5ba3e8; }
+    .lesson-body { flex: 1; min-width: 0; }
+    .lesson-title {
+      font-size: 11px; font-family: "SF Mono", "Fira Code", monospace;
+      color: #888; margin-bottom: 3px;
+    }
+    .lesson-item.active .lesson-title { color: #ccc; }
+    .lesson-desc { font-size: 11px; color: #555; line-height: 1.4; }
+    .lesson-item.active .lesson-desc { color: #777; }
+    .lessons-empty { padding: 20px 14px; font-size: 11px; color: #444; text-align: center; }
+
+    /* ── SVG Schematic ── */
+    .schema-container {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .schema-svg {
+      width: 100%; max-width: 900px;
+    }
+    .schema-title {
+      font-size: 22px; font-weight: 600; fill: #ddd;
+    }
+    .schema-sub {
+      font-size: 16px; fill: #666;
+    }
+    .schema-box {
+      stroke-width: 2; rx: 6; ry: 6;
+    }
+    .schema-box-label {
+      font-size: 14px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #ccc; text-anchor: middle;
+    }
+    .schema-box-sub {
+      font-size: 15px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #666; text-anchor: middle;
+    }
+    .schema-lesson {
+      stroke-width: 1.5; rx: 4; ry: 4;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .schema-lesson:hover { opacity: 0.8; }
+    .schema-lesson.active { stroke-width: 2.5; }
+    .schema-lesson-label {
+      font-size: 13px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #999; text-anchor: middle;
+    }
+    .schema-arrow {
+      stroke-width: 2; fill: none; marker-end: url(#arrowhead);
+    }
+    .schema-polygon-label {
+      font-size: 14px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #5ba3e8; text-anchor: middle; font-weight: 600;
+    }
+    .schema-reward {
+      font-size: 14px; font-family: "SF Mono", "Fira Code", monospace;
+      fill: #4ecb71;
+    }
+
+    /* ── UE5.7 advantages banner ── */
+    .ue5-banner {
+      background: linear-gradient(135deg, rgba(91,163,232,0.08), rgba(78,203,113,0.06));
+      border-top: 1px solid rgba(91,163,232,0.15);
+      border-bottom: 1px solid rgba(91,163,232,0.15);
+      padding: 12px 20px;
+      flex-shrink: 0;
+    }
+    .ue5-banner h2 {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 12px; color: #5ba3e8; font-weight: 500;
+      margin-bottom: 6px; letter-spacing: 0.05em;
+    }
+    .ue5-banner p {
+      font-size: 11px; color: #777; line-height: 1.55;
+      margin-bottom: 4px;
+    }
+    .ue5-banner .highlight {
+      color: #4ecb71;
+    }
+    .ue5-grid {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px;
+    }
+    .ue5-chip {
+      font-size: 10px; font-family: "SF Mono", "Fira Code", monospace;
+      color: #999; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; padding: 4px 10px;
+    }
+    .ue5-chip b { color: #5ba3e8; }
+    a.nav-train-link { color: #e8a830 !important; }
+    a.nav-train-link:hover { color: #f0c040 !important; }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-C3SKKXL2.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="home" href="index.html">Главная</a>
+  <a href="agents.html">Агенты</a>
+  <a href="agent-packages.html">ПИД АГЕНТ</a>
+  <a href="curriculum.html">Программа</a>
+  <a href="agent-training.html">2D Тренинг</a>
+  <a class="active" href="agent-training-3d.html">3D Тренинг</a>
+  <a href="Poligon.html">Полигон</a>
+  <a href="simulator.html">Демонстратор</a>
+  <a href="UTC.html">УТЦ</a>
+  <a href="diagram-pipeline.html">Пайплайн</a>
+  <a href="training.html">Обучение</a>
+  <a href="results.html">Модели</a>
+  <a href="paperplane.html">PaperPlane</a>
+  <a href="trials.html">Испытания</a>
+  <a href="licenses.html">Лицензия</a>
+</nav>
+
+<header>
+    <a class="back-btn header-back-btn" href="curriculum.html">
+      <span class="back-btn-arrow">←</span> Программа RL
+    </a>
+  <h1>3D ТРЕНИНГ — обучение на полигоне Unreal Engine 5.7</h1>
+</header>
+<div class="ue5-banner">
+    <h2> Преимущества 3D-обучения с подкреплением</h2>
+    <p>
+      В отличие от абстрактных 2D/2.5D симуляций, полигон на <span class="highlight">Unreal Engine 5.7</span>
+      предоставляет фотореалистичную среду с физически корректным освещением, тенями, отражениями и атмосферой.
+      Агент обучается на <span class="highlight">реальном видеопотоке</span> с камеры, используя
+      <span class="highlight">свёрточную нейросеть</span> для детекции и классификации объектов
+      (здания, транспорт, БПЛА, препятствия) с выдачей их 3D-координат в пространстве полигона.
+    </p>
+    <p>
+      Такой подход устраняет разрыв между симуляцией и реальностью (<span class="highlight">sim-to-real gap</span>):
+      политика, обученная на визуальном входе UE5.7, напрямую переносится на бортовой компьютер дрона
+      без дообучения. Градиенты ландшафта, отражения от стёкол и динамические тени становятся
+      частью наблюдения агента, формируя <span class="highlight">устойчивую политику</span>, работающую
+      в реальных городских условиях.
+    </p>
+
+    <div class="ue5-grid">
+      <span class="ue5-chip"><b>NN</b> YOLOv8 / DINOv2</span>
+      <span class="ue5-chip"><b>3D</b> координаты объектов</span>
+      <span class="ue5-chip"><b>UE5.7</b> Lumen + Nanite</span>
+      <span class="ue5-chip"><b>RL</b> PPO / SAC / DreamerV3</span>
+    </div>
+  </div>
+
+<div class="body">
+    <div class="left-panel">
+      <div class="panel-section classes-section">
+      <div class="panel-title">Классы 3D</div>
+      <div id="classesList"></div>
+    </div>
+  </div>
+
+  <div class="graph-area" id="schemaArea">
+    <div class="schema-container" id="schemaContainer"></div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-section lessons-section">
+      <div class="panel-title">Практические задания</div>
+      <div id="lessonsList"><div class="lessons-empty">← Выберите класс</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLASSES = [
+  {
+    id: 7, label: 'Визуальная навигация', polygon: 'UE5 3D', color: '#5ba3e8',
+    desc: 'Агент ориентируется в 3D-пространстве по видеопотоку с камеры. NN-детекция распознаёт ключевые ориентиры ландшафта и строений.',
+    reward: '−pose_error −detection_loss + waypoint_bonus',
+    lessons: [
+      { title: 'Распознавание рельефа по видеопотоку', desc: 'NN-модель (DINOv2) выделяет контуры ландшафта. Агент учится сопоставлять 2D-кадр с 3D-картой высот.' },
+      { title: 'Локализация по ориентирам', desc: 'Детекция зданий и вышек на кадре. Агент вычисляет собственное положение методом PnP по 3D-соответствиям.' },
+      { title: 'Следование гребню с визуальным контролем', desc: 'Полёт вдоль гребня возвышенности с удержанием заданного удаления от поверхности. Контроль через depth-карту.' },
+      { title: 'Визуальное избегание препятствий', desc: 'NN детектирует деревья, столбы, ЛЭП на пути. Агент уходит в сторону до восстановления маршрута.' },
+      { title: 'Слепая посадка по визуальным маркерам', desc: 'Снижение на неподготовленную площадку с распознаванием посадочной зоны через сегментацию кадра.' },
+    ]
+  },
+  {
+    id: 8, label: 'Городская застройка', polygon: 'UE5 3D', color: '#e87a5b',
+    desc: 'Полёт в условиях плотной городской застройки. NN детектирует окна, балконы, провода, транспорт, пешеходов.',
+    reward: '−collision_risk −altitude_err + corridor_bonus',
+    lessons: [
+      { title: 'Проход в каньоне улиц', desc: 'Агент движется вдоль улицы между зданиями. NN детектирует вывески, карнизы, открытые окна на пути.' },
+      { title: 'Облёт высотного здания', desc: 'Обход небоскрёба с перестроением по вертикали. Детекция турбулентных зон за углами.' },
+      { title: 'Навигация под мостами и эстакадами', desc: 'Проход под пролётами мостов. Оценка просвета через depth-канал и детекция ферм.' },
+      { title: 'Площадь с фонтанами и памятниками', desc: 'Сложная геометрия открытого пространства. Агент выбирает траекторию между динамическими препятствиями.' },
+      { title: 'Эвакуация из городского каньона', desc: 'Экстренный выход из плотной застройки на открытое пространство с набором высоты. Приоритет — безопасность.' },
+    ]
+  },
+  {
+    id: 9, label: 'Погода и атмосфера', polygon: 'UE5 3D', color: '#e8a830',
+    desc: 'Обучение в динамических погодных условиях UE5.7: дождь, туман, снег, сумерки, прямая засветка. NN-детекция деградирует — агент учится компенсировать.',
+    reward: '−detection_uncertainty −drift + adapt_bonus',
+    lessons: [
+      { title: 'Полёт в тумане с NN-фильтрацией', desc: 'Видимость снижена до 50 м. NN-детекция использует вероятностный выход. Агент доверяет лидарным псевдо-измерениям.' },
+      { title: 'Компенсация засветки от солнца', desc: 'Прямой солнечный свет слепит камеру. Агент переключается на инфракрасный канал и корректирует экспозицию.' },
+      { title: 'Стабилизация при порывах ветра', desc: 'Ветер 15 м/с с порывами. Агент учится упреждающему отклонению по инерциальным данным.' },
+      { title: 'Детекция целей в дождливом городе', desc: 'Дождь, отражения в лужах, стёкла. NN путается в бликах. Агент учится темпоральной фильтрации детекций.' },
+      { title: 'Ночной полёт с ИК-камерой', desc: 'Полная темнота. Агент использует тепловизионный канал. Детекция людей и автомобилей по тепловому контрасту.' },
+    ]
+  },
+  {
+    id: 10, label: 'Полная миссия', polygon: 'UE5 3D', color: '#4ecb71',
+    desc: 'Финальный экзамен: город + погода + активный антидрон + ограниченное время. Всё вместе на реалистичном полигоне UE5.7.',
+    reward: 'composite — до 1500 баллов',
+    lessons: [
+      { title: 'Прорыв ПВО в городе', desc: 'Зоны ПВО и РЭБ в центре города. Агент прокладывает маршрут через подворотни и парки, используя укрытия.' },
+      { title: 'Перехват цели в дождь', desc: 'Цель движется по городу. Агент ведёт визуальное сопровождение через NN-детекцию в условиях дождя и бликов.' },
+      { title: 'Кооперативная атака в 3D', desc: 'Пара дронов: один подсвечивает цель с ИК-прожектором, второй атакует. Синхронизация через общую карту.' },
+      { title: 'Уклонение от антидрона в тумане', desc: 'Перехватчик использует радар. Агент прячется за зданиями и использует туман для маскировки ИК-сигнатуры.' },
+      { title: 'Финальная миссия UE5', desc: 'Город, ночь, ливень, 2 антидрона, 3 цели, ограничение по топливу 8 минут. Экзамен на готовность к реальной операции.' },
+    ]
+  }
+];
+
+let currentClass = 7;
+let currentLesson = 0;
+
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function renderClasses() {
+  const el = document.getElementById('classesList');
+  el.innerHTML = CLASSES.map(c => {
+    const bg = c.id === currentClass ? hexToRgba(c.color, 0.15) : hexToRgba(c.color, 0.06);
+    const borderColor = c.id === currentClass ? hexToRgba(c.color, 1) : hexToRgba(c.color, 0.35);
+    return `
+    <div class="class-item${c.id === currentClass ? ' active' : ''}" data-id="${c.id}" style="background:${bg};border-top-color:${borderColor}">
+      <div class="class-item-name">
+        <span class="class-badge">${String(c.id).padStart(2,'0')}</span>
+        ${c.label}
+        <span style="float:right;font-size:9px;color:#555">${c.polygon}</span>
+      </div>
+      <div class="class-item-desc">${c.desc}</div>
+    </div>
+  `;
+  }).join('');
+
+  el.querySelectorAll('.class-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = Number(item.dataset.id);
+      if (id === currentClass) return;
+      currentClass = id;
+      currentLesson = 0;
+      renderClasses();
+      renderSchema();
+      renderLessons();
+    });
+  });
+}
+
+function renderLessons() {
+  const cls = CLASSES.find(c => c.id === currentClass);
+  const el = document.getElementById('lessonsList');
+  if (!cls) { el.innerHTML = '<div class="lessons-empty">Нет данных</div>'; return; }
+  const lessonItemColors = [
+    'rgba(91,163,232,0.5)',
+    'rgba(78,203,113,0.5)',
+    'rgba(232,168,48,0.5)',
+    'rgba(232,122,91,0.5)',
+    'rgba(154,143,224,0.5)',
+  ];
+  el.innerHTML = cls.lessons.map((l, i) => {
+    const topColor = i === currentLesson ? lessonItemColors[i].replace('0.5', '1') : lessonItemColors[i];
+    return `
+    <div class="lesson-item${i === currentLesson ? ' active' : ''}" data-idx="${i}" style="border-top-color:${topColor}">
+      <div class="lesson-num">${i + 1}</div>
+      <div class="lesson-body">
+        <div class="lesson-title">${l.title}</div>
+        <div class="lesson-desc">${l.desc}</div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  el.querySelectorAll('.lesson-item').forEach(item => {
+    item.addEventListener('click', () => {
+      currentLesson = Number(item.dataset.idx);
+      renderLessons();
+      renderSchema();
+    });
+  });
+}
+
+function renderSchema() {
+  const cls = CLASSES.find(c => c.id === currentClass);
+  if (!cls) return;
+
+  const W = 1060, H = 480;
+  const cols = {
+    role: 140,
+    env: 455,
+    lessons: 860
+  };
+
+  const colors = {
+    role: '#5ba3e8',
+    env: '#e8a830',
+    lesson: '#4ecb71'
+  };
+
+  const lessonFillColors = [
+    'rgba(91,163,232,0.12)',
+    'rgba(78,203,113,0.12)',
+    'rgba(232,168,48,0.12)',
+    'rgba(232,122,91,0.12)',
+    'rgba(154,143,224,0.12)',
+  ];
+  const lessonBorderColors = [
+    'rgba(91,163,232,0.5)',
+    'rgba(78,203,113,0.5)',
+    'rgba(232,168,48,0.5)',
+    'rgba(232,122,91,0.5)',
+    'rgba(154,143,224,0.5)',
+  ];
+
+  let svg = `<svg class="schema-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#555"/>
+      </marker>
+    </defs>
+    <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+
+    <text x="${cols.role}" y="30" text-anchor="middle" class="schema-title" fill="${colors.role}">РОЛЬ</text>
+    <text x="${cols.env}" y="30" text-anchor="middle" class="schema-title" fill="${colors.env}">ПОЛИГОН UE5.7</text>
+    <text x="${cols.lessons}" y="30" text-anchor="middle" class="schema-title" fill="${colors.lesson}">ПРАКТИЧЕСКИЕ ЗАДАНИЯ</text>
+  `;
+
+  function box(col, y, w, h, label, sub, color, fill) {
+    const x = col - w/2;
+    return `
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" class="schema-box" stroke="${color}" fill="${fill || 'rgba(255,255,255,0.04)'}"/>
+      <text x="${col}" y="${y + h/2 + 4}" class="schema-box-label" fill="${color}">${label}</text>
+      ${sub ? `<text x="${col}" y="${y + h - 8}" class="schema-box-sub">${sub}</text>` : ''}
+    `;
+  }
+
+  const yDrone = 75;
+  svg += box(cols.role, yDrone, 250, 100, 'ДРОН (NN-ПОЛИТИКА)', 'CNN backbone: DINOv2 → PPO', colors.role);
+  const yAnti = yDrone + 120;
+  svg += box(cols.role, yAnti, 250, 100, 'АНТИДРОН (ПЕРЕХВАТЧИК)', 'rule-based → NN policy', colors.role);
+
+  const envY = 65;
+  const envH = 250;
+  const envLabel = 'UE5.7 3D ПОЛИГОН';
+  const envDesc = 'Ландшафт · погода · физика · Lumen';
+  const envX = cols.env - 150;
+  svg += `
+    <rect x="${envX}" y="${envY}" width="330" height="${envH}" class="schema-box" stroke="${colors.env}" fill="rgba(91,163,232,0.06)"/>
+    <text x="${cols.env}" y="${envY + 36}" class="schema-box-label" fill="#eee" font-size="18">${envLabel}</text>
+    <text x="${cols.env}" y="${envY + 72}" class="schema-box-sub" fill="#eee" font-size="18">${envDesc}</text>
+  `;
+
+  const envDetails = [
+    { txt: 'Ландшафт: холмы, лес, водоёмы', y: envY + 108 },
+    { txt: 'Город: здания, мосты, дороги', y: envY + 134 },
+    { txt: 'Погода: дождь, снег, туман, ветер', y: envY + 160 },
+    { txt: 'NN-детекция: YOLOv8 / DINOv2', y: envY + 186 },
+  ];
+  envDetails.forEach(d => {
+    svg += `<text x="${cols.env}" y="${d.y}" text-anchor="middle" class="schema-box-sub" fill="#eee" font-size="18">${d.txt}</text>`;
+  });
+
+  const lessonY = 65;
+  const lessonH = 34;
+  const lessonGap = 16;
+  const lessonW = 400;
+
+  cls.lessons.forEach((l, i) => {
+    const y = lessonY + i * (lessonH + lessonGap);
+    const isActive = i === currentLesson;
+    const fillColor = isActive ? lessonFillColors[i].replace('0.12', '0.25') : lessonFillColors[i];
+    const topColor = isActive ? lessonBorderColors[i].replace('0.5', '0.9') : lessonBorderColors[i];
+    svg += `
+      <rect x="${cols.lessons - lessonW/2}" y="${y}" width="${lessonW}" height="${lessonH}"
+            class="schema-lesson${isActive ? ' active' : ''}"
+            stroke="${isActive ? '#ddd' : colors.lesson}" fill="${fillColor}"/>
+      <rect x="${cols.lessons - lessonW/2}" y="${y}" width="${lessonW}" height="3"
+            fill="${topColor}" rx="2" ry="2"/>
+      <text x="${cols.lessons}" y="${y + lessonH/2 + 4}"
+            class="schema-box-label" fill="${isActive ? '#ddd' : '#999'}"
+            text-anchor="middle" font-size="12">УРОК ${i+1}  —  ${l.title}</text>
+    `;
+  });
+
+  const loopY = lessonY + 5 * (lessonH + lessonGap) + 10;
+  svg += `
+    <rect x="${cols.lessons - lessonW/2}" y="${loopY}" width="${lessonW}" height="28"
+          rx="4" ry="4" stroke="rgba(78,203,113,0.3)" fill="rgba(78,203,113,0.06)" stroke-dasharray="4,3"/>
+    <text x="${cols.lessons}" y="${loopY + 18}" text-anchor="middle" class="schema-box-label" fill="#4ecb71" font-size="12">
+      🔄 RL-ЦИКЛ: кадр → NN-детекция → действие → reward → обновление весов
+    </text>
+  `;
+
+  svg += `<line x1="${cols.lessons}" y1="${lessonY + 5*(lessonH+lessonGap)}" x2="${cols.lessons}" y2="${loopY - 5}" class="schema-arrow" stroke="#555"/>`;
+
+  svg += `</svg>`;
+
+  document.getElementById('schemaContainer').innerHTML = svg;
+}
+
+renderClasses();
+renderLessons();
+renderSchema();
+</script>
+</body>
+</html>
