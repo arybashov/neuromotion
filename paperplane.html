@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <script src="/auth-gate.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperPlane — Аэродинамика бумажного самолётика</title>
+    <link rel="stylesheet" href="paperplane/style.css">
+    <style>
+        :root {
+            --paperplane-nav-height: 42px;
+            --paperplane-nav-bg: #05070a;
+            --paperplane-nav-line: rgba(91, 163, 232, 0.45);
+            --paperplane-nav-text: #aaa;
+            --paperplane-nav-active: #5ba3e8;
+        }
+
+        body.paperplane-host {
+            display: block;
+            height: 100vh;
+            overflow: hidden;
+            background: #0a0a12;
+        }
+
+        body.paperplane-host .top-nav {
+            height: var(--paperplane-nav-height);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--paperplane-nav-line);
+            background: var(--paperplane-nav-bg);
+            font: 600 12px/1 system-ui, sans-serif;
+            flex-wrap: wrap;
+            overflow: hidden;
+        }
+
+        body.paperplane-host .top-nav a {
+            color: var(--paperplane-nav-text);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        body.paperplane-host .top-nav a:hover,
+        body.paperplane-host .top-nav a.active {
+            color: var(--paperplane-nav-active);
+        }
+
+        body.paperplane-host .top-nav a.home {
+            color: #fff;
+        }
+
+        body.paperplane-host .paperplane-shell {
+            height: calc(100vh - var(--paperplane-nav-height));
+            display: flex;
+            overflow: hidden;
+        }
+
+        body.paperplane-host .paperplane-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 30px;
+            padding: 8px 10px;
+            border: 1px solid rgba(78, 204, 163, 0.45);
+            border-radius: 6px;
+            color: #4ecca3;
+            background: rgba(78, 204, 163, 0.08);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        body.paperplane-host .paperplane-back:hover {
+            color: #101218;
+            background: #4ecca3;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        if (typeof OrbitControls !== 'undefined' && typeof THREE.OrbitControls === 'undefined') {
+            THREE.OrbitControls = OrbitControls;
+        }
+    </script>
+</head>
+<body class="paperplane-host">
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a class="active" href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+<div class="paperplane-shell">
+
+<div id="sidebar">
+    <a id="paperplaneBack" class="paperplane-back" href="results.html">← Назад</a>
+    <div class="logo">
+        <div class="logo-icon">✈</div>
+        <div>
+            <h1>PaperPlane</h1>
+            <span>Аэродинамическая симуляция</span>
+        </div>
+    </div>
+
+    <div class="section-title">Параметры запуска</div>
+
+    <div class="control-group">
+        <label>Начальная скорость <span class="value" id="val-v0">12 м/с</span></label>
+        <input type="range" id="v0" min="2" max="25" step="0.5" value="12">
+    </div>
+
+    <div class="control-group">
+        <label>Угол броска <span class="value" id="val-angle">5°</span></label>
+        <input type="range" id="angle" min="-30" max="60" step="1" value="5">
+    </div>
+
+    <div class="control-group">
+        <label>Высота броска, м <span class="value" id="val-h0">2</span></label>
+        <input type="range" id="h0" min="1" max="50" step="1" value="2">
+    </div>
+
+    <select id="shape" class="hidden-control">
+        <option value="custom" selected>Своя конфигурация</option>
+    </select>
+
+    <div class="section-title">Среда</div>
+
+    <div class="control-group">
+        <label>Ветер <span class="value" id="val-wind">0 м/с</span></label>
+        <input type="range" id="wind" min="-15" max="15" step="0.5" value="0">
+    </div>
+
+    <div class="control-group">
+        <label>Турбулентность <span class="value" id="val-turb">0</span></label>
+        <input type="range" id="turb" min="0" max="5" step="0.1" value="0">
+    </div>
+
+    <div class="control-group">
+        <label>Восходящие потоки <span class="value" id="val-thermal">0</span></label>
+        <input type="range" id="thermal" min="0" max="8" step="0.1" value="0">
+    </div>
+
+    <div class="btn-row">
+        <button class="primary" id="launch">🚀 Запуск</button>
+        <button class="secondary" id="pause">⏸ Пауза</button>
+        <button class="secondary" id="clear">↺ Сброс</button>
+    </div>
+
+    <button class="accent" id="optimize" style="width:100%; margin-top:4px;">⚡ Оптимизация</button>
+    <a class="nav-button" href="paperplane/whitepapers.html" target="_blank" rel="noopener">Whitepapers</a>
+    <div id="opt-status"></div>
+
+    <div class="stats-panel">
+        <h3>Результаты полёта</h3>
+        <div class="stat-item">
+            <span class="stat-label">Дальность (X)</span>
+            <span class="stat-value" id="s-distance">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Боковое отклонение (Z)</span>
+            <span class="stat-value" id="s-zoffset">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Время полёта</span>
+            <span class="stat-value" id="s-time">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Макс. высота</span>
+            <span class="stat-value" id="s-hmax">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Конечная скорость</span>
+            <span class="stat-value" id="s-vfinal">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Скорость сваливания</span>
+            <span class="stat-value" id="s-vstall">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Нагрузка на крыло</span>
+            <span class="stat-value" id="s-wingload">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Качество L/D</span>
+            <span class="stat-value" id="s-ld">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Re крыла</span>
+            <span class="stat-value" id="s-re">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Static margin</span>
+            <span class="stat-value" id="s-static-margin">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Tail volume</span>
+            <span class="stat-value" id="s-tail-volume">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Подъем крыла / хвоста</span>
+            <span class="stat-value" id="s-lift-breakdown">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Pitch moment</span>
+            <span class="stat-value" id="s-pitch-moment">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Поток Y</span>
+            <span class="stat-value" id="s-flow-y">—</span>
+        </div>
+    </div>
+</div>
+
+<div id="main-area">
+    <div id="scene-container">
+        <div class="hud">
+            <div class="hud-item">Скорость: <strong id="hud-speed">— м/с</strong></div>
+            <div class="hud-item">Vs: <strong id="hud-vstall">— м/с</strong></div>
+            <div class="hud-item">L/D: <strong id="hud-ld">—</strong></div>
+            <div class="hud-item">α: <strong id="hud-alpha">—°</strong></div>
+            <div class="hud-item">γ: <strong id="hud-gamma">—°</strong></div>
+            <div class="hud-item">pitch: <strong id="hud-pitch">—°</strong></div>
+            <div class="hud-item">Высота: <strong id="hud-alt">— м</strong></div>
+            <div class="hud-item">Отклонение Z: <strong id="hud-z">— м</strong></div>
+        </div>
+        <div class="controls-hint">
+            <span>🖱 ЛКМ</span> вращать · <span>🖱 ПКМ</span> двигать · <span>🖱 Колёсико</span> зум
+        </div>
+    </div>
+
+<div id="constructor-window" class="constructor-window" aria-hidden="false">
+    <div class="constructor-panel">
+        <div class="constructor-header">
+            <div>
+                <h2>Конструктор</h2>
+                <span id="design-summary">b 0.22 м · c 0.06 м · Λ 15°</span>
+            </div>
+        </div>
+
+        <div class="constructor-layout">
+            <div class="constructor-preview large">
+                <svg id="constructor-svg" viewBox="0 0 260 130" aria-hidden="true"></svg>
+            </div>
+
+            <div class="constructor-controls">
+                <div class="control-group preset-control">
+                    <label style="margin-bottom:10px;">Пресет модели</label>
+                    <select id="aircraft-preset">
+                        <option value="booSlope800" selected>BOO Slope Glider 800 mm</option>
+                        <option value="custom">Своя конфигурация</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom:10px;">Профиль крыла</label>
+                    <select id="airfoil">
+                        <option value="flatPlate">Плоская пластина</option>
+                        <option value="creasedPaper">Сложенный лист</option>
+                        <option value="camberedPlate">Выгнутый лист</option>
+                        <option value="naca0012">NACA 0012</option>
+                        <option value="naca2412">NACA 2412</option>
+                        <option value="e387Uiuc200k" selected>E387 UIUC Re 200k</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Масса <span class="value" id="val-mass">170 г</span></label>
+                    <input type="range" id="mass" min="20" max="250" step="1" value="170">
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom:10px;">Центр масс</label>
+                    <div class="segmented-control" id="cg-mode">
+                        <button type="button" class="segment active" data-cg-mode="calculated">Расчет</button>
+                        <button type="button" class="segment" data-cg-mode="manual">Ручной</button>
+                    </div>
+                </div>
+
+                <div class="control-group cg-manual-control">
+                    <label>ЦТ от передней кромки <span class="value" id="val-cgFromWingLE">0.039 м</span></label>
+                    <input type="range" id="cgFromWingLE" min="0.005" max="0.120" step="0.001" value="0.039">
+                </div>
+
+                <div class="control-group">
+                    <label>Масса носа <span class="value" id="val-noseMass">47 г</span></label>
+                    <input type="range" id="noseMass" min="0" max="120" step="1" value="47">
+                </div>
+
+                <div class="control-group">
+                    <label>Положение носовой массы <span class="value" id="val-noseMassX">0.058 м</span></label>
+                    <input type="range" id="noseMassX" min="0" max="0.25" step="0.001" value="0.058">
+                </div>
+
+                <div class="control-group">
+                    <label>Масса крыла <span class="value" id="val-wingMass">60 г</span></label>
+                    <input type="range" id="wingMass" min="0" max="140" step="1" value="60">
+                </div>
+
+                <div class="control-group">
+                    <label>Масса фюзеляжа <span class="value" id="val-fuselageMass">45 г</span></label>
+                    <input type="range" id="fuselageMass" min="0" max="140" step="1" value="45">
+                </div>
+
+                <div class="control-group">
+                    <label>Масса хвоста <span class="value" id="val-tailMass">18 г</span></label>
+                    <input type="range" id="tailMass" min="0" max="80" step="1" value="18">
+                </div>
+
+                <div class="control-group">
+                    <label>Передняя кромка крыла <span class="value" id="val-wingLE">0.16 м</span></label>
+                    <input type="range" id="wingLE" min="0.02" max="1.10" step="0.005" value="0.16">
+                </div>
+
+                <div class="control-group">
+                    <label>Размах крыла <span class="value" id="val-wingSpan">0.80 м</span></label>
+                    <input type="range" id="wingSpan" min="0.10" max="1.50" step="0.005" value="0.80">
+                </div>
+
+                <div class="control-group">
+                    <label>Корневая хорда <span class="value" id="val-rootChord">0.115 м</span></label>
+                    <input type="range" id="rootChord" min="0.02" max="0.35" step="0.005" value="0.115">
+                </div>
+
+                <div class="control-group">
+                    <label>Концевая хорда <span class="value" id="val-tipChord">0.08 м</span></label>
+                    <input type="range" id="tipChord" min="0.01" max="0.30" step="0.005" value="0.08">
+                </div>
+
+                <div class="control-group">
+                    <label>Стреловидность <span class="value" id="val-sweep">0.0°</span></label>
+                    <input type="range" id="sweep" min="-20" max="55" step="1" value="0">
+                </div>
+
+                <div class="control-group">
+                    <label>Длина фюзеляжа <span class="value" id="val-fuselageLength">0.485 м</span></label>
+                    <input type="range" id="fuselageLength" min="0.35" max="1.50" step="0.005" value="0.485">
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom:10px;">Оперение</label>
+                    <div class="segmented-control" id="tail-mode">
+                        <button type="button" class="segment active" data-tail-mode="vTail">V</button>
+                        <button type="button" class="segment" data-tail-mode="conventional">Классика</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Хвост от носа <span class="value" id="val-tailX">0.455 м</span></label>
+                    <input type="range" id="tailX" min="0.12" max="1.50" step="0.005" value="0.455">
+                </div>
+
+                <div class="control-group fin-control">
+                    <label>Киль от носа <span class="value" id="val-finX">0.435 м</span></label>
+                    <input type="range" id="finX" min="0.12" max="1.50" step="0.005" value="0.435">
+                </div>
+
+                <div class="control-group">
+                    <label>Размах хвоста <span class="value" id="val-tailSpan">0.25 м</span></label>
+                    <input type="range" id="tailSpan" min="0.04" max="0.80" step="0.005" value="0.25">
+                </div>
+
+                <div class="control-group">
+                    <label>Корневая хорда хвоста <span class="value" id="val-tailRootChord">0.07 м</span></label>
+                    <input type="range" id="tailRootChord" min="0.015" max="0.30" step="0.005" value="0.07">
+                </div>
+
+                <div class="control-group">
+                    <label>Концевая хорда хвоста <span class="value" id="val-tailTipChord">0.045 м</span></label>
+                    <input type="range" id="tailTipChord" min="0.01" max="0.25" step="0.005" value="0.045">
+                </div>
+
+                <div class="control-group fin-control">
+                    <label>Высота киля <span class="value" id="val-finHeight">0 м</span></label>
+                    <input type="range" id="finHeight" min="0" max="0.50" step="0.005" value="0">
+                </div>
+
+                <div class="control-group fin-control">
+                    <label>Корневая хорда киля <span class="value" id="val-finRootChord">0.06 м</span></label>
+                    <input type="range" id="finRootChord" min="0.015" max="0.30" step="0.005" value="0.06">
+                </div>
+
+                <div class="control-group fin-control">
+                    <label>Концевая хорда киля <span class="value" id="val-finTipChord">0.035 м</span></label>
+                    <input type="range" id="finTipChord" min="0.01" max="0.25" step="0.005" value="0.035">
+                </div>
+
+                <div class="control-group fin-control">
+                    <label>Масса киля <span class="value" id="val-finMass">0 г</span></label>
+                    <input type="range" id="finMass" min="0" max="50" step="1" value="0">
+                </div>
+
+                <div class="control-group">
+                    <label>Стреловидность хвоста <span class="value" id="val-tailSweep">0.0°</span></label>
+                    <input type="range" id="tailSweep" min="-15" max="35" step="1" value="0">
+                </div>
+
+                <div class="control-group">
+                    <label>Угол крыла <span class="value" id="val-wingIncidence">0.0°</span></label>
+                    <input type="range" id="wingIncidence" min="-6" max="12" step="0.5" value="0.0">
+                </div>
+
+                <div class="control-group">
+                    <label>Угол хвоста <span class="value" id="val-tailIncidence">-0.5°</span></label>
+                    <input type="range" id="tailIncidence" min="-12" max="8" step="0.1" value="-0.5">
+                </div>
+
+                <div class="control-group">
+                    <label>Диэдрал <span class="value" id="val-dihedral">8.0°</span></label>
+                    <input type="range" id="dihedral" min="0" max="25" step="0.5" value="8.0">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+</div>
+<script src="paperplane/physics.js"></script>
+<script src="paperplane/scene.js"></script>
+<script src="paperplane/app.js"></script>
+<script>
+    (function() {
+        var back = document.getElementById('paperplaneBack');
+        if (!back) return;
+        var fallback = 'results.html';
+        try {
+            var ref = document.referrer;
+            var sameSiteRef = ref && new URL(ref).origin === location.origin;
+            if (sameSiteRef) {
+                back.href = ref;
+                back.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    history.back();
+                });
+            } else {
+                back.href = fallback;
+            }
+        } catch (err) {
+            back.href = fallback;
+        }
+    })();
+</script>
+</body>
+</html>

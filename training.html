@@ -1,0 +1,3008 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/auth-gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Обучение RL - PolygonSite 3D</title>
+  <style>
+    .branch-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px 0;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+      padding: 4px 0;
+    }
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font: 500 11px/1.4 Rajdhani, sans-serif;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .metric-item .metric-label { color: rgba(255,255,255,0.45); }
+    .metric-item b { color: #5ba3e8; font-weight: 600; }
+
+    .training-page {
+      display: grid !important;
+      grid-template-columns: 1fr 400px;
+      grid-template-rows: auto 1fr;
+      column-gap: 5mm;
+    }
+    .training-header { grid-column: 1; grid-row: 1; }
+    .training-shell {
+      grid-column: 1; grid-row: 2;
+      height: 100%; min-height: 0;
+    }
+    .node-workspace {
+      /* !important — общий styles.css задаёт .node-workspace как 2-колоночный grid
+         (старая раскладка) и при сборке Vite перебивает инлайн по порядку загрузки */
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: none !important;
+      min-height: 0;
+      height: 100%;
+    }
+    .node-inspector {
+      grid-column: 2; grid-row: 1 / -1;
+      height: 100%;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .node-inspector > .btn-row:last-of-type { margin-top: auto; }
+    .node-inspector .inspector-grid { flex: 1; overflow-y: auto; min-height: 0; }
+    .node-editor-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      border: 1px solid rgba(59,130,246,0.7);
+      border-radius: 10px;
+      box-shadow: 0 0 14px rgba(59,130,246,0.3);
+    }
+    .node-editor-content {
+      flex: 0 0 auto; display: flex; flex-direction: column; position: relative;
+      margin: 0 3mm 5mm 3mm;
+      border-top: 1px solid rgba(59,130,246,0.7) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .training-header {
+      border-top: 1px solid rgba(59,130,246,0.7) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .node-inspector {
+      border: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .header-back-btn {
+      display: inline-block; margin: 0; padding: 5px 12px;
+      width: 220px; flex-shrink: 0;
+      background: rgba(232,168,48,0.08); border: 1px solid rgba(232,168,48,0.35);
+      color: #e8a830; font-size: 11px; cursor: pointer; border-radius: 4px;
+      text-decoration: none; transition: color 0.12s, border-color 0.12s;
+      font-family: inherit; text-align: center;
+    }
+    .header-back-btn:hover { color: #f0c040; border-color: rgba(232,168,48,0.6); }
+    .custom-select { position: relative; flex: 1; min-width: 0; }
+    .custom-select-current {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 3px; color: #fff; padding: 3px 8px; cursor: pointer; user-select: none;
+      font: 500 11px Rajdhani, sans-serif; height: 24px; white-space: nowrap;
+    }
+    .custom-select-current:hover { border-color: rgba(91,163,232,0.6); }
+    .custom-select-current .cs-label { overflow: hidden; text-overflow: ellipsis; }
+    .custom-select-current .cs-caret { flex-shrink: 0; font-size: 9px; opacity: 0.7; }
+    .custom-select-list {
+      position: absolute; z-index: 3000; display: none;
+      background: #0d1520; border: 1px solid rgba(91,163,232,0.45);
+      border-radius: 4px; box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      max-height: 220px; overflow-y: auto;
+    }
+    .custom-select-list.open { display: block; }
+    .custom-select-item {
+      padding: 4px 8px; color: #cfd9e8; cursor: pointer; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; font: 500 11px Rajdhani, sans-serif;
+    }
+    .custom-select-item:hover { background: rgba(91,163,232,0.18); color: #fff; }
+    .custom-select-item.selected { background: rgba(91,163,232,0.28); color: #5ba3e8; }
+    .custom-select-item.placeholder { color: #5f6b7d; cursor: default; }
+    .custom-select-item.placeholder:hover { background: transparent; }
+    .header-back-btn.training-active { color: #4ecb71 !important; border-color: #4ecb71 !important; background: rgba(78,203,113,0.12) !important; }
+    .back-btn-arrow { font-size: 14px; }
+    .header-top {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 4px; padding-left: 7cm;
+    }
+    .header-top h1 { margin-bottom: 0; flex: 1; font-size: 16px; color: #fff; }
+    .training-header {
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 8px 16px;
+    }
+    .training-status-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 4px 16px; background: rgba(232,168,48,0.1);
+      border-bottom: 1px solid rgba(232,168,48,0.2);
+      font: 500 10px/1.3 "SF Mono", monospace; color: #e8a830;
+    }
+    .tsb-label { font-weight: 700; text-transform: uppercase; }
+    .tsb-lesson { color: #ccc; }
+    .tsb-progress { color: #5ba3e8; }
+    .tsb-time { color: #888; margin-left: auto; }
+    .banner-2d {
+      background: rgba(91,163,232,0.06);
+      border-top: 1px solid rgba(59,130,246,0.25);
+      border-bottom: 1px solid rgba(59,130,246,0.25);
+      border-radius: 8px;
+      padding: 6px 12px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      margin: 0 3mm 5px 3mm;
+    }
+    .schema-svg { width: 100%; height: auto; }
+    body.docs-body.training-body { overflow: hidden !important; height: 100vh; }
+    .training-page { height: calc(100vh - 42px); overflow: hidden; }
+    .info-row {
+      display: flex; gap: 5px; flex-shrink: 0;
+      margin: 0 3mm 3mm 3mm;
+    }
+    .info-block {
+      flex: 1; width: 50%;
+      padding: 10px 16px;
+      background: #0b0b0d;
+      border-top: 1px solid rgba(59,130,246,0.7) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.7) !important;
+      box-shadow: 0 0 12px rgba(59,130,246,0.25), inset 0 0 8px rgba(59,130,246,0.05);
+      border-radius: 8px;
+    }
+    .info-title {
+      font: 600 10px/1.3 Rajdhani, sans-serif; text-transform: uppercase;
+      letter-spacing: 1.2px; color: rgba(255,255,255,0.35);
+      margin-bottom: 6px;
+    }
+    .info-content { font: 500 12px/1.4 Rajdhani, sans-serif; color: #aaa; }
+    .prog-bar {
+      width: 100%; height: 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 5px; overflow: hidden; margin-bottom: 6px;
+    }
+    .prog-fill {
+      height: 100%; border-radius: 5px; transition: width 0.4s;
+      background: linear-gradient(90deg, #5ba3e8, #7b6fe0, #9a8fe0);
+    }
+    .prog-text { font-size: 11px; }
+    .mini-chart { margin-top: 10px; position: relative; }
+    .mini-chart span { font: 600 8px/1.2 Rajdhani,sans-serif; text-transform: uppercase; letter-spacing: 0.6px; color: #666; display: block; margin-bottom: 2px; }
+    .mini-chart svg { width: 100% !important; height: 30px; display: block; }
+    .chart-ep-badge {
+      position: absolute; top: 0; right: 0;
+      font: 600 16px/1.2 Rajdhani, sans-serif; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #fff; border: 1px solid rgba(91,163,232,0.4); border-radius: 3px;
+      padding: 2px 6px; background: rgba(10,14,12,0.85); white-space: nowrap;
+      box-shadow: 0 0 6px rgba(91,163,232,0.12);
+    }
+    .chip-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip-grid .chip {
+      font-size: 9px; font-family: "SF Mono", "Fira Code", monospace;
+      color: #999; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .chip-grid .chip b { color: #e8a830; }
+    .cls-tabs {
+      display: flex; gap: 4px; padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0; overflow-x: auto;
+    }
+    .cls-tab {
+      padding: 4px 10px; font: 600 11px/1.3 Rajdhani, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.07); border-radius: 4px;
+      background: transparent; color: rgba(255,255,255,0.4);
+      cursor: pointer; transition: 0.12s; white-space: nowrap;
+    }
+    .cls-tab:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+    .cls-tab.active { color: #fff; border-color: #5ba3e8; background: rgba(91,163,232,0.12); }
+    .cls-tab.facult { border-color: rgba(91,163,232,0.4); color: #5ba3e8; }
+    .cls-tab.facult.active { border-color: #5ba3e8; background: rgba(91,163,232,0.12); color: #5ba3e8; }
+
+    .lesson-canvas {
+      flex: 1; display: flex; align-items: center; justify-content: stretch;
+      padding: 10px 20px; overflow: hidden; gap: 8px;
+    }
+    .lesson-schemes-wrap {
+      flex: 1; min-width: 0; max-width: 66%; display: flex; align-items: stretch;
+      border: 1px solid rgba(91,163,232,0.6); border-radius: 8px;
+      background: rgba(91,163,232,0.05);
+      box-shadow: 0 0 12px rgba(91,163,232,0.35), inset 0 0 18px rgba(91,163,232,0.08);
+      overflow: hidden;
+    }
+    .ls-node {
+      flex: 1; min-width: 0; min-height: 112px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; background: rgba(255,255,255,0.03);
+      padding: 8px 10px; cursor: pointer; transition: 0.12s;
+      flex-shrink: 0; position: relative;
+      display: flex; flex-direction: column;
+    }
+    .ls-node:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.06); }
+    .ls-node.selected { border-left-width: 3mm; border-color: #e8a830; background: rgba(232,168,48,0.15); }
+    .ls-node.training { border-color: #e8a830; box-shadow: 0 0 10px rgba(232,168,48,0.3); }
+    .ls-node.completed { border-color: #4ecb71; background: rgba(78,203,113,0.08); }
+
+    .ls-node.locked { opacity: 0.35; cursor: not-allowed; border-color: rgba(255,255,255,0.06); }
+    .ls-node.locked:hover { border-color: rgba(255,255,255,0.06); background: transparent; }
+    .ls-reset-btn {
+      position: absolute; top: 3px; right: 3px; z-index: 2;
+      display: none; width: 16px; height: 16px; padding: 0;
+      border: none; border-radius: 50%;
+      background: rgba(255,255,255,0.08); color: #777;
+      cursor: pointer; font: 600 10px/16px Rajdhani,sans-serif; text-align: center;
+      transition: 0.15s;
+    }
+    .ls-reset-btn:hover { background: rgba(255,80,80,0.3); color: #ff6b6b; }
+    .ls-node:hover .ls-reset-btn { display: block; }
+    .ls-node.locked .ls-reset-btn { display: none !important; }
+    .ls-node .ls-num { font: 700 10px/1.2 Rajdhani, sans-serif; color: #e8a830; margin-bottom: 2px; }
+    .ls-node.locked .ls-num { color: #555; }
+    .ls-node .ls-title { font: 600 11px/1.3 Rajdhani, sans-serif; color: #ddd; }
+    .ls-node .ls-status { font: 500 12px/1.2 Rajdhani, sans-serif; color: #777; margin-top: calc(4px + 3mm); }
+    .ls-remain { font: 500 10px/1.2 "SF Mono", monospace; color: #e8a830; margin-top: 2px; }
+    .ls-node .ls-bar { height: calc(10px + 2mm); border-radius: 5px; background: rgba(255,255,255,0.06); margin-top: calc(6px + 3mm); overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+    .ls-node .ls-bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; position: absolute; left: 0; top: 0; background: linear-gradient(90deg, #5ba3e8, #9a8fe0); }
+    .ls-node .ls-bar-text { position: relative; z-index: 1; font: 600 16px/1 Rajdhani,sans-serif; color: #555; letter-spacing: 0.5px; }
+    .ls-node .ls-metrics { font: 500 12px/1.2 Rajdhani, sans-serif; color: #666; margin-top: 2px; }
+    .ls-node .ls-metrics .good { color: #4ecb71; }
+    .ls-node .ls-metrics .warn { color: #e8a830; }
+    .ls-arrow {
+      width: 24px; height: calc(3px - 0.3mm); background: rgba(232,168,48,0.25);
+      flex-shrink: 0; position: relative; align-self: center;
+    }
+    .ls-arrow::after {
+      content: ''; position: absolute; right: -1px; top: 50%; translate: 0 -50%;
+      border: 5px solid transparent; border-left-color: rgba(232,168,48,0.25);
+    }
+    .ls-arrow.ready { background: #e8a830; }
+    .ls-arrow.ready::after { border-left-color: #e8a830; }
+    .ls-row {
+      display: flex; align-items: stretch; gap: 6px; flex: 1;
+    }
+
+    /* ── Faculty tab styles ── */
+    .faculty-wrap { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 760px; margin: 0 auto; }
+    .faculty-prog { text-align: center; }
+    .faculty-prog .prog-bar { height: 14px; border-radius: 7px; }
+    .faculty-prog .prog-fill { border-radius: 7px; }
+    .faculty-prog-text { font: 500 11px/1.3 Rajdhani, sans-serif; color: #999; margin-top: 4px; }
+    .faculty-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .faculty-card {
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+      padding: 10px 8px; cursor: pointer; transition: 0.12s;
+      background: rgba(255,255,255,0.02); position: relative;
+      text-align: center;
+    }
+    .faculty-card:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); }
+    .faculty-card.selected { border-width: 2px; }
+    .faculty-card.completed { border-color: #4ecb71; background: rgba(78,203,113,0.06); }
+    .faculty-card .fc-label { font: 700 12px/1.3 Rajdhani, sans-serif; color: #ddd; margin-bottom: 2px; }
+    .faculty-card .fc-name { font: 500 9px/1.2 Rajdhani, sans-serif; color: #777; margin-bottom: 6px; }
+    .faculty-card .fc-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; margin-bottom: 3px; }
+    .faculty-card .fc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .faculty-card .fc-info { font: 500 9px/1.2 Rajdhani, sans-serif; color: #666; }
+    .faculty-card .fc-info .done { color: #4ecb71; }
+    .faculty-card .fc-btn {
+      display: inline-block; margin-top: 6px; padding: 3px 12px;
+      font: 600 9px/1.2 Rajdhani, sans-serif; text-transform: uppercase; letter-spacing: 0.5px;
+      border: 1px solid rgba(78,203,113,0.4); border-radius: 3px;
+      background: transparent; color: #4ecb71; cursor: pointer; transition: 0.12s;
+    }
+    .faculty-card .fc-btn:hover { background: rgba(78,203,113,0.1); }
+    .faculty-card .fc-btn:disabled { opacity: 0.3; cursor: default; }
+    /* ── Mode toggle ── */
+    .mode-switch { display: flex; gap: 0; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; padding-right: 0.4mm; }
+    .mode-btn { padding: 4px 12px; font: 600 10px/1.3 Rajdhani,sans-serif; cursor: pointer; border: none; background: rgba(255,255,255,0.04); color: #888; transition: 0.12s; }
+    .mode-btn.active { background: rgba(91,163,232,0.2); color: #5ba3e8; }
+    .mode-btn:first-child { border-right: 1px solid rgba(255,255,255,0.08); }
+    .faculty-class-lessons {
+      border-top: 1px solid rgba(255,255,255,0.07); padding-top: 12px;
+    }
+    .faculty-class-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .faculty-class-header h3 { font: 700 13px/1.3 Rajdhani, sans-serif; color: #ddd; margin: 0; }
+    button { color: #fff; }
+    .node-inspector .docs-kicker,
+    .node-inspector .panel-title,
+    .node-inspector .ml-row span { color: #e8a830 !important; }
+    .node-inspector .docs-kicker { text-align: center !important; }
+    .node-inspector .ml-row b { color: #e8a830; }
+    .node-inspector .btn-row button {
+      color: #5ba3e8 !important;
+      border-color: rgba(91,163,232,0.35) !important;
+    }
+    .node-inspector .btn-row button:hover {
+      background: rgba(91,163,232,0.08) !important;
+      border-color: #5ba3e8 !important;
+    }
+    .node-inspector .btn-row button.training-active {
+      color: #e8a830 !important;
+      border-color: #e8a830 !important;
+      background: rgba(232,168,48,0.1) !important;
+    }
+    .weight-reset-btn {
+      font: 400 8px/1 monospace; color: #e8a830; background: none; border: 1px solid rgba(232,168,48,0.3);
+      border-radius: 50%; width: 16px; height: 16px; cursor: pointer; padding: 0; margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .weight-reset-btn:hover { color: #fff; border-color: #e8a830; background: rgba(232,168,48,0.15); }
+    .panel-title { display: flex; align-items: center; }
+    #btnApplyWeights { width: 100%; margin-top: 6px; padding: 4px 6px; font-family: var(--mono); font-size: 12px; letter-spacing: .15em; text-transform: uppercase; color: #5ba3e8; background: rgba(91,163,232,0.08); border: 1px solid rgba(91,163,232,0.35); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    #btnApplyWeights:hover { color: #fff; border-color: #5ba3e8; background: rgba(91,163,232,0.18); }
+    #btnApplyWeights:disabled { opacity: .5; cursor: default; }
+    .reward-comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; font: 700 12px/1.4 "SF Mono", monospace; }
+    .reward-comp-grid div { display: flex; justify-content: space-between; }
+    .reward-comp-grid span { color: #666; }
+    .reward-comp-grid .comp-label { cursor: pointer; transition: color 0.15s; user-select: none; }
+    .reward-comp-grid .comp-label:hover { color: #aaa; }
+    .reward-comp-grid .comp-label.active { color: #4ecb71; }
+    .reward-comp-grid b { color: #5ba3e8; min-width: 55px; text-align: right; font-size:14px; font-weight:500; }
+    .node-inspector .mode-btn { color: #888 !important; }
+    .node-inspector .mode-btn.active { color: #5ba3e8 !important; background: rgba(91,163,232,0.2); }
+    .node-inspector h2 { color: #5ba3e8 !important; }
+    .node-inspector .reward-comp-grid span { color: #fff !important; }
+    .node-inspector .reward-comp-grid .comp-label.active { color: #4ecb71 !important; }
+    .node-inspector input[type=number] {
+      border-color: rgba(91,163,232,0.35) !important;
+      color: #5ba3e8 !important;
+    }
+    .node-inspector .weight-grid label {
+      display: flex; align-items: center; gap: 0;
+    }
+    .node-inspector .weight-grid label > span.weight-name {
+      width: 76px;
+      flex: 0 0 auto;
+      margin-right: 1cm;
+    }
+    .node-inspector .weight-grid input[type=range] {
+      background: rgba(91,163,232,0.2) !important;
+      flex: 1 1 0;
+      width: auto;
+      min-width: 0;
+    }
+    .node-inspector .weight-grid input[type=range]::-webkit-slider-thumb {
+      background: #5ba3e8 !important;
+    }
+    .node-inspector .weight-grid label > span:last-child {
+      color: #fff !important; font-size:12px; font-weight:400; min-width:28px; text-align:right;
+      margin-left: 1cm; margin-right: 0;
+    }
+    .weight-name { color: #fff !important; }
+    .node-inspector .weight-tooltip {
+      border-color: rgba(91,163,232,0.42) !important;
+    }
+    /* Инспектор — стиль шрифта по образцу блока «УРОК 1» (ls-node): Rajdhani, 10–12px */
+    .node-inspector .docs-kicker { font: 700 10px/1.2 Rajdhani, sans-serif !important; letter-spacing: 1.2px; }
+    .node-inspector .panel-title { font: 700 10px/1.2 Rajdhani, sans-serif !important; letter-spacing: 1.2px; }
+    .node-inspector .metric-item,
+    .node-inspector .metric-item span,
+    .node-inspector .metric-item b { font: 500 12px/1.2 Rajdhani, sans-serif !important; }
+    .node-inspector .reward-comp-grid { font: 500 12px/1.4 Rajdhani, sans-serif !important; }
+    .node-inspector .reward-comp-grid b { font: 500 12px/1.4 Rajdhani, sans-serif !important; }
+    .node-inspector .weight-name { font: 300 11px/1.3 Rajdhani, sans-serif !important; letter-spacing: 0.3px; }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/styles-Grn9g-We.css">
+</head>
+<body class="docs-body training-body">
+  <nav class="top-nav">
+    <a class="home" href="index.html">Главная</a>
+    <a href="agents.html">Агенты</a>
+    <a href="agent-packages.html">ПИД АГЕНТ</a>
+    <a href="curriculum.html">Программа</a>
+    <a href="agent-training.html">2D Тренинг</a>
+    <a href="agent-training-3d.html">3D Тренинг</a>
+    <a href="Poligon.html">Полигон</a>
+    <a href="simulator.html">Демонстратор</a>
+    <a href="UTC.html">УТЦ</a>
+    <a href="diagram-pipeline.html">Пайплайн</a>
+    <a class="active" href="training.html">Обучение</a>
+    <a href="results.html">Модели</a>
+    <a href="paperplane.html">PaperPlane</a>
+    <a href="trials.html">Испытания</a>
+    <a href="licenses.html">Лицензия</a>
+  </nav>
+
+  <main class="training-page">
+    <header class="training-header">
+      <a class="back-btn header-back-btn" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.35);color:#fff;" href="agent-training.html">
+        <span class="back-btn-arrow">←</span> Программа RL
+      </a>
+      <button id="btnPreviewNode" class="header-back-btn" style="width:110px;margin-left:4px;background:rgba(91,163,232,0.12);border-color:#5ba3e8;color:#5ba3e8;" type="button">СИМУЛЯЦИЯ</button>
+      <button id="btnStartNode" class="header-back-btn" style="width:110px;margin-left:4px;background:rgba(78,203,113,0.12);border-color:#4ecb71;color:#4ecb71;" type="button">ЗАПУСК RL</button>
+      <button id="btnResumeNode" class="header-back-btn" style="width:130px;margin-left:4px;" type="button">ПРОДОЛЖИТЬ</button>
+      <button id="btnResetNode" class="header-back-btn" style="width:130px;margin-left:4px;background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.35);color:#fff;" type="button">СБРОС</button>
+      <button id="btnStopNode" class="header-back-btn" style="width:120px;margin-left:6px;color:#e04b4b;border-color:rgba(224,75,74,0.5);" type="button" disabled>СТОП</button>
+      <span id="trainingTimerElapsed" style="margin-left:2cm;color:#fff;font-family:monospace;font-size:13px;">--:--:--</span>
+      <button id="btnRestartServer" class="header-back-btn" style="width:120px;margin-left:8px;color:#aaa;border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);" type="button" title="Остановить и перезагрузить сервер">запущен</button>
+      <div style="flex:1;"></div>
+    </header>
+    <div class="training-status-bar" id="trainingStatusBar" style="display:none">
+      <span class="tsb-label">Обучение:</span>
+      <span class="tsb-lesson" id="tsbLesson">-</span>
+      <span class="tsb-progress" id="tsbProgress">0%</span>
+      <span class="tsb-time" id="tsbTime">--</span>
+    </div>
+    <section class="training-shell">
+      <div class="node-workspace">
+        <div class="node-editor-wrap">
+          <div class="banner-2d" id="bannerSchema"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0;margin:0 3mm 3mm 3mm;">
+            <div class="info-block info-progress" style="width:auto !important;max-width:100%;min-width:0;">
+              <div class="info-title" style="color:#e8a830;">Прогресс обучения</div>
+              <div class="info-content" id="progressContent">← Выберите класс</div>
+              <div class="mini-chart svg-chart"><span>награда</span><b id="rewardEpBadge" class="chart-ep-badge" title="Текущий / выбранный эпизод">—</b><svg id="rewardSpark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+              <div class="mini-chart muted svg-chart"><span>loss (PPO)</span><svg id="lossSpark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
+              <div class="mini-chart muted svg-chart"><span>состав награды по чекпоинтам</span><svg id="evalSpark" viewBox="0 0 100 65" preserveAspectRatio="none"></svg></div>
+              <div id="nodeCheckpointStatus" style="display:none;margin-top:4px;padding:3px 6px;border-radius:3px;font:500 11px Rajdhani;background:rgba(255,180,50,0.08);border:1px solid rgba(255,180,50,0.2);color:#ffb432;"></div>
+            </div>
+            <div class="info-block" style="width:auto !important;max-width:100%;min-width:0;flex:1;display:flex;flex-direction:column;">
+              <div style="border:1px solid rgba(91,163,232,0.35);border-radius:6px;padding:8px 10px 6px;margin-bottom:8px;box-shadow:0 0 10px rgba(91,163,232,0.12);flex:1;display:flex;flex-direction:column;">
+              <div class="info-title" style="color:#e8a830;">Состав награды <span id="trcEpisode" style="font-size:10px;color:#5ba3e8;font-weight:600;"></span></div>
+              <div class="reward-comp-grid" id="trainRewardComp" style="flex:1;align-content:start;">
+                <div><span class="comp-label" data-comp="progress" title="Вклад прогресса в награду: +награда за приближение к waypoint. Формула: (расстояние_до − расстояние_после)/25 × вес.">Прогресс</span><b id="trcProgress">-</b></div>
+                <div><span class="comp-label" data-comp="waypoint" title="Вклад точки: разовый бонус за вход в радиус waypoint. Вес + 5 (глобальный бонус).">Точка</span><b id="trcWaypoint">-</b></div>
+                <div><span class="comp-label" data-comp="precision" title="Вклад точности пролёта через waypoint (ближе к центру радиуса).">Точность</span><b id="trcPrecision">-</b></div>
+                <div><span class="comp-label" data-comp="altitude" title="Вклад высоты: −штраф за отклонение от высоты waypoint. Формула: −ошибка(м)/100 × dt × вес.">Высота</span><b id="trcAltitude">-</b></div>
+                <div><span class="comp-label" data-comp="time" title="Вклад времени: −штраф за каждый тик симуляции. Стимулирует быстрее долетать.">Время</span><b id="trcTime">-</b></div>
+                <div><span class="comp-label" data-comp="crash" title="Вклад аварии: −штраф за крушение (разовый, ×60).">Авария</span><b id="trcCrash">-</b></div>
+                <div><span class="comp-label" data-comp="vzStability" title="Вклад Vz: +награда если вертикальная скорость ≈0. При Vz>1м/с — штраф.">Vстаб</span><b id="trcVz">-</b></div>
+                <div><span class="comp-label" data-comp="headingStability" title="Вклад курса: +награда если нос направлен на waypoint.">Курс</span><b id="trcHeading">-</b></div>
+                <div><span class="comp-label" data-comp="pitchStability" title="Вклад тангажа: +награда если pitch≈0°. При |θ|>3° — штраф.">Тангаж</span><b id="trcPitch">-</b></div>
+                <div><span class="comp-label" data-comp="speedStability" title="Вклад скорости: +награда за стабильность горизонтальной скорости.">V гор</span><b id="trcSpeed">-</b></div>
+                <div><span class="comp-label" data-comp="slipStability" title="Вклад скольжения: +награда если |β|≈0° (без бокового сноса).">Скольжение</span><b id="trcSlip">-</b></div>
+                <div><span class="comp-label" data-comp="bankStability" title="Вклад крена: +награда если |φ|≈0° (без лишнего крена).">Крен</span><b id="trcBank">-</b></div>
+                <div><span class="comp-label" data-comp="stallMargin" title="Вклад запаса до сваливания: +награда за удалённость от критического угла атаки.">Срыв/запас</span><b id="trcStall">-</b></div>
+                <div><span class="comp-label" data-comp="overtake" title="Вклад обгона: +награда за скорость выше крейсерской после ⅓ маршрута.">Обгон</span><b id="trcOvertake">-</b></div>
+                <div><span class="comp-label" data-comp="altImpr" title="Вклад улучшения высоты: +награда за сокращение ошибки.">↗ Высота</span><b id="trcAltImpr">-</b></div>
+                <div><span class="comp-label" data-comp="hdgImpr" title="Вклад улучшения курса: +награда за доворот на цель.">↗ Курс</span><b id="trcHdgImpr">-</b></div>
+                <div><span class="comp-label" data-comp="vzImpr" title="Вклад улучшения Vz: +награда за гашение верт. скорости.">↗ V верт</span><b id="trcVzImpr">-</b></div>
+                <div><span class="comp-label" data-comp="pitchImpr" title="Вклад улучшения тангажа: +награда за выравнивание.">↗ Тангаж</span><b id="trcPitchImpr">-</b></div>
+                <div><span class="comp-label" data-comp="altPredict" title="Вклад прогноза высоты: −штраф за будущую ошибку через 10с при текущем Vz. Формула: −|(Z+Vz×10с)−Zцели|/100×dt×вес.">Высота→</span><b id="trcAltPredict">-</b></div>
+                <div><span class="comp-label" data-comp="finalApproach" title="Вклад захода: +награда за выравнивание курса на финальную точку в полосе приёмки (учит прямолинейный вход в круг вместо облёта).">Заход</span><b id="trcFinalApproach">-</b></div>
+                <div><span class="comp-label" data-comp="terminal" title="Терминальный бонус/штраф в конце эпизода (прибытие/свал/таймаут).">Терминал</span><b id="trcTerminal">-</b></div>
+                <div><span title="Сумма всех компонентов за эпизод (с учётом весов и терминальных бонусов).">Сумма</span><b id="trcTotal">-</b></div>
+              </div>
+              </div>
+            </div>
+          </div>
+          <div class="node-editor-content">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="cls-tabs" id="clsTabs" style="flex:1;"></div>
+               <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-right:2cm;">
+                <div class="custom-select" id="historySelect" style="flex:0 0 230px;margin-left:1.5cm;" title="История чекпоинтов: снимки best.json узла. Выберите снимок и нажмите «Восстановить».">
+                  <div class="custom-select-current" id="historyCurrent" title="Снимки best.json узла: #эпизод · score · время. Создаются автоматически при новом пике. Клик — открыть список.">
+                    <span class="cs-label" id="historyCurrentLabel">— урок не выбран —</span>
+                    <span class="cs-caret">▼</span>
+                  </div>
+                  <div class="custom-select-list" id="historyList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+            <div style="display:flex;gap:8px;align-items:stretch;min-height:0;flex:1;">
+              <div class="lesson-schemes-wrap">
+              <div class="lesson-canvas" id="lessonCanvas">
+                <div class="ls-placeholder">Выберите класс</div>
+              </div>
+              </div>
+              <div style="margin-left:5mm;flex:1;min-width:0;border:1px solid rgba(91,163,232,0.35);border-radius:6px;padding:8px 10px 6px;box-shadow:0 0 10px rgba(91,163,232,0.12);">
+                <div class="info-title" style="color:#e8a830;">ЧЕК ПОИНТЫ</div>
+                <div style="display:flex;gap:12px;align-items:center;font:500 13px Rajdhani;color:#aaa;margin-bottom:8px;flex-wrap:wrap;">
+                  <label>Эпизоды <input id="nodeEpisodesInput" type="number" value="60" min="1" style="width:90px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:3px;color:#fff;padding:2px 6px;font:500 13px Rajdhani;"></label>
+                  <label title="Скорость обучения (learning rate). На 150-м эпизоде автоматически снижается вдвое. Рекомендация: 0,0001">LR <input id="nodeLr" type="number" value="0.0001" step="0.00001" style="width:90px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:3px;color:#fff;padding:2px 6px;font:500 13px Rajdhani;"></label>
+                  <label title="Рекомендация: 0 (чистый PPO, без инструктора). Стартовое значение имитации при авто-снижении">Имитация <input id="nodeImitationWeight" type="number" value="0.5" min="0" max="1" step="0.01" style="width:55px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:3px;color:#fff;padding:2px 6px;font:500 13px Rajdhani;"></label>
+                  <label title="Автомат: плавно снижает имитацию от «ИМИТАЦИЯ» (старт) до «до» по прогрессу эпизодов (1.0 → 0.1)" style="color:#4ecb71;white-space:nowrap;"><input type="checkbox" id="chkAutoImitation" style="vertical-align:middle;accent-color:#4ecb71;width:auto;margin:0 3px 0 4px;">АВТО <span style="color:#aaa;">до</span></label>
+                  <input id="nodeImitationEnd" type="number" value="0.1" min="0" max="1" step="0.01" style="width:55px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:3px;color:#fff;padding:2px 6px;font:500 13px Rajdhani;" title="Конечное значение имитации при авто-снижении">
+                  <label title="Энтропийный бонус — поощряет разведку (exploration). Выше = агент дольше пробует новые стратегии. Рекомендация: 0,010">ENTROPY <input id="nodeEntropyCoef" type="number" value="0.010" step="0.001" min="0" max="0.1" style="width:75px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:3px;color:#fff;padding:2px 6px;font:500 13px Rajdhani;"></label>
+                  <label title="Порог KL-дивергенции — ранняя остановка эпохи PPO, если политика ушла слишком далеко. Ниже = консервативнее. Рекомендация: 0,01">TARGET_KL <input id="nodeTargetKL" type="number" value="0.02" step="0.005" min="0" max="0.1" style="width:75px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:3px;color:#fff;padding:2px 6px;font:500 13px Rajdhani;"></label>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap;">
+                  <button id="btnRestoreCheckpoint" class="header-back-btn" type="button" style="flex:0 0 auto;width:auto;margin-right:5mm;padding:2px 10px;font-size:11px;color:#4ecb71;border-color:rgba(78,203,113,0.35);background:rgba(78,203,113,0.06);" title="Восстановить выбранный снимок в best.json/latest.json — старый чекпоинт вернётся в обучение и предпросмотр. Работает только когда узел не обучается. Подсказка: выбирайте снимок с лучшим score — его веса нейросети вернутся в обучение.">Восстановить</button>
+                  <div style="min-width:130px;font:400 11px/1.3 inherit;display:flex;align-items:baseline;gap:6px;color:#4ecb71;white-space:nowrap;border:1px solid rgba(91,163,232,0.4);border-radius:4px;padding:2px 10px;box-shadow:0 0 8px rgba(91,163,232,0.12);" title="Прибытия в Eval-запуске: N из общего. Зелёный — все добрались, жёлтый — часть, красный — ни одного."><span style="color:#4ecb71;text-transform:lowercase;">Прибытие</span><b id="nodeEvalArrival" style="color:#4ecb71;font:400 11px/1.3 inherit;font-weight:400;"></b></div>
+                  <b id="nodeConverge" style="min-width:110px;font:400 11px/1.3 inherit;font-weight:400;color:#aaa;white-space:nowrap;border:1px solid rgba(91,163,232,0.4);border-radius:4px;padding:2px 10px;box-shadow:0 0 8px rgba(91,163,232,0.12);" title="Статус сходимости алгоритма: сошлось / не сошлось">-</b>
+                </div>
+                <div class="info-title" style="color:#e8a830;">СОХРАНИТЬ НА ДИСК</div>
+                <div style="margin-top:8px;display:flex;gap:8px;">
+                  <button id="btnPersistDisk" class="header-back-btn" type="button" style="flex:1;padding:2px 10px;font-size:11px;color:#8a9bff;border-color:rgba(138,155,255,0.3);background:rgba(138,155,255,0.06);" title="Сохранить метрики урока на диск (из localStorage в data/checkpoints)">💾 Persist to disk <span id="diskStatusLight" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:4px;background:#333;transition:background 0.3s,box-shadow 0.3s;"></span></button>
+                  <button id="btnSaveReport" class="header-back-btn" type="button" style="flex:1;padding:2px 10px;font-size:11px;color:#e8a830;border-color:rgba(232,168,48,0.3);background:rgba(232,168,48,0.06);" title="Сформировать отчёт обучения в lesson/Resultats/">📋 Отчёт</button>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+    </section>
+    <aside class="node-inspector">
+      <div class="docs-kicker" style="margin-bottom:2px;font-size:20px;">Инспектор</div>
+      <div class="inspector-grid">
+
+      <div class="inspector-section">
+        <div class="panel-title">Метрики</div>
+        <div class="metrics-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;">
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 15px Rajdhani;color:#aaa;"><span title="Текущая награда за последний эпизод">Награда</span><b id="nodeReward" style="color:#fff;">-</b></div>
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 13px Rajdhani;color:#aaa;"><span title="Лучшая награда за всё время обучения">Лучшая</span><b id="nodeBestReward" style="color:#fff;">-</b></div>
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 13px Rajdhani;color:#aaa;"><span title="Экспоненциальное скользящее среднее награды">EMA</span><b id="nodeEmaReward" style="color:#fff;">-</b></div>
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 13px Rajdhani;color:#aaa;"><span title="Отклонение награды от baseline-модели">Δ baseline</span><b id="nodeDelta" style="color:#fff;">-</b></div>
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 13px Rajdhani;color:#aaa;"><span title="Функция потерь PPO (чем ниже, тем лучше)">Loss</span><b id="nodeLoss" style="color:#fff;">-</b></div>
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 13px Rajdhani;color:#fff;"><span title="Текущий вес имитации (BC loss). 1.0 — полное копирование инструктора, 0.1 — самостоятельный полёт">Имитация</span><b id="nodeImitation" style="color:#fff;">-</b></div>
+          <div class="metric-item" style="display:flex;justify-content:space-between;font:500 13px Rajdhani;color:#aaa;"><span title="Процент пройденного маршрута">Прогресс</span><b id="nodeProgress" style="color:#fff;">-</b></div>
+        </div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="panel-title"><button id="btnResetWeights" type="button" class="weight-reset-btn" style="margin-left:0;" title="Сбросить веса к шаблонным">↺</button> <button id="btnRewardDesc" type="button" class="weight-reset-btn" title="Скачать описание всех наград и штрафов" style="font-size:10px;">📋</button> <label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;cursor:pointer;font:inherit;color:inherit;text-transform:none;letter-spacing:normal;font-weight:400;" title="Автоподбор весов наград внешним оптимизатором (CMA-ES на greedy-eval, раз в 10 эпизодов). Пишет строку «ПодборВесов: 1|0» в файл урока — файл остаётся источником правды. Применяется с нового запуска RL."><input id="chkAutoWeights" type="checkbox" style="accent-color:#4ecb71;width:13px;height:13px;cursor:pointer;margin:0;">(тюнер)</label></div>
+        <button id="btnApplyWeights" type="button" title="Перечитать [ВЕСА] из файла урока (.txt) и применить к ЗАПУЩЕННОМУ обучению — без рестарта и без перезапуска. Работает только при работающем обучении. После остановки веса меняются слайдером + «Продолжить». Действует со следующего эпизода.">Применить к обучению</button>
+      </div>
+      <div class="inspector-section">
+        <div class="weight-grid" id="nodeWeights">
+          <div style="grid-column:1/-1;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:#5ba3e8;margin-top:4px;border-bottom:1px solid rgba(91,163,232,0.2);padding-bottom:2px;">ШАГ ОБУЧЕНИЯ (ТИК dt=0.1с)</div>
+          <label data-tip="+награда за сокращение 3D-дистанции до waypoint.&#10;Формула: (dist_prev − dist_now) / 25.&#10;Не более 0.5 — иначе перевешивает все штрафы.&#10;Достаточно +0.089/шаг при 160 км/ч."><span class="weight-name">Прогресс</span><input data-weight="progress" type="range" min="0" max="2" value="0.5" step="0.1"><span style="color:#fff;">0.5</span></label>
+          <label data-tip="−штраф за отклонение от высоты waypoint.&#10;Формула: ошибка(м)/100 × dt.&#10;При ошибке 10м: −0.04/шаг × 900 шагов = −36/эп.&#10;Умеренный регулятор высоты. 3–6 для урока 1."><span class="weight-name">Высота</span><input data-weight="altitude" type="range" min="0" max="20" value="4" step="0.5"><span style="color:#fff;">4</span></label>
+          <label data-tip="−штраф за ПРОГНОЗ ошибки высоты на 100 шагов (10с) вперёд по Vz.&#10;Формула: |(Z+Vz×10с)−Zцели|/100×dt.&#10;Агент видит: «если продолжу лезть вверх — будет плохо».&#10;Аналог D-терма. Рекомендую 3–8."><span class="weight-name">Высота→</span><input data-weight="altPredict" type="range" min="0" max="20" value="5" step="0.5"><span style="color:#fff;">5</span></label>
+          <label data-tip="−штраф за каждый тик симуляции.&#10;Формула: −dt × вес.&#10;Стимулирует быстрее достигать цели."><span class="weight-name">Время</span><input data-weight="time" type="range" min="0" max="0.5" value="0.3" step="0.01"><span style="color:#fff;">0.3</span></label>
+          <label data-tip="+награда если |Vz|≈0. При Vz>1м/с — штраф.&#10;Формула: (1 − |Vz|×1.0) / 100 × dt.&#10;Инструмент, не цель. 2–5 для урока 1."><span class="weight-name">Vстаб</span><input data-weight="vzStability" type="range" min="0" max="20" value="8" step="0.5"><span style="color:#fff;">8</span></label>
+          <label data-tip="+награда если нос направлен на waypoint.&#10;Формула: (1 − error×0.05) / 100 × dt.&#10;Держит курс. 5–8 для прямых."><span class="weight-name">Курс</span><input data-weight="headingStability" type="range" min="0" max="10" value="1.0" step="0.1"><span style="color:#fff;">1.0</span></label>
+          <label data-tip="+награда если тангаж≈0°.&#10;Формула: (1 − |θ|×1.0) / 100 × dt.&#10;Инструмент высоты, не враг. 2–5."><span class="weight-name">Тангаж</span><input data-weight="pitchStability" type="range" min="0" max="20" value="15" step="0.5"><span style="color:#fff;">15</span></label>
+          <label data-tip="Награда за стабильность скорости.&#10;Формула: (1 − |откл−5|×0.005) / 100 × dt."><span class="weight-name">V (гор)</span><input data-weight="speedStability" type="range" min="0" max="10" value="1.0" step="0.1"><span style="color:#fff;">1.0</span></label>
+          <label data-tip="−штраф за скольжение (угол β).&#10;0 = выкл. 2–5 для прямых, 0 для виражей."><span class="weight-name">Скольжение</span><input data-weight="slipStability" type="range" min="0" max="5" value="0" step="0.1"><span style="color:#fff;">0</span></label>
+          <label data-tip="−штраф за крен (угол φ).&#10;0 = выкл. 5–8 для прямых, 0 для виражей."><span class="weight-name">Крен</span><input data-weight="bankStability" type="range" min="0" max="10" value="0" step="0.1"><span style="color:#fff;">0</span></label>
+          <label data-tip="−штраф за приближение к сваливанию.&#10;1.0 — базовая защита от stall."><span class="weight-name">Срыв</span><input data-weight="stallMargin" type="range" min="0" max="5" value="1.0" step="0.1"><span style="color:#fff;">1.0</span></label>
+          <label data-tip="+награда за выравнивание курса на финальную точку в полосе приёмки.&#10;Учит прямолинейный вход в круг вместо облёта.&#10;5–10 для урока 1."><span class="weight-name">Заход</span><input data-weight="finalApproach" type="range" min="0" max="20" value="10" step="0.5"><span style="color:#fff;">10</span></label>
+
+          <div style="grid-column:1/-1;font-family:var(--mono);font-size:10px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:#5ba3e8;margin-top:8px;border-bottom:1px solid rgba(91,163,232,0.2);padding-bottom:2px;">IMPROVEMENT (+НАГРАДА ЗА УЛУЧШЕНИЕ)</div>
+          <label data-tip="+награда за сокращение ошибки высоты.&#10;Формула: max(0, err_prev − err_now) / 100.&#10;Агент учится исправлять высоту."><span class="weight-name">↗ Высота</span><input data-weight="altImpr" type="range" min="0" max="20" value="3" step="0.1"><span>3</span></label>
+          <label data-tip="+награда за сокращение ошибки курса.&#10;Формула: max(0, err_prev − err_now) / 100.&#10;Агент учится доворачивать на цель."><span class="weight-name">↗ Курс</span><input data-weight="hdgImpr" type="range" min="0" max="20" value="3" step="0.1"><span>3</span></label>
+          <label data-tip="+награда за приближение Vz к 0.&#10;Формула: max(0, |Vz_prev| − |Vz_now|) / 10."><span class="weight-name">↗ V верт</span><input data-weight="vzImpr" type="range" min="0" max="20" value="5" step="0.1"><span>5</span></label>
+          <label data-tip="+награда за приближение тангажа к 0.&#10;Формула: max(0, |θ_prev| − |θ_now|) / 10."><span class="weight-name">↗ Тангаж</span><input data-weight="pitchImpr" type="range" min="0" max="20" value="5" step="0.1"><span>5</span></label>
+
+          <div style="grid-column:1/-1;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:#5ba3e8;margin-top:8px;border-bottom:1px solid rgba(91,163,232,0.2);padding-bottom:2px;">РАЗОВЫЕ</div>
+          <label data-tip="+бонус за вход в радиус waypoint (разовый).&#10;Фактически = вес + 20 (глобальный бонус).&#10;Чем выше — тем важнее точка."><span class="weight-name">Точка</span><input data-weight="waypoint" type="range" min="0" max="20" value="5" step="0.5"><span>5</span></label>
+          <label data-tip="+дополнительный бонус при прохождении waypoint: ближе к центру точки — выше награда.&#10;Формула: вес × (1 − offset/радиус).&#10;Учит пролетать через центр, а не по краю."><span class="weight-name">Точность</span><input data-weight="precision" type="range" min="0" max="4" value="0" step="0.1"><span>0</span></label>
+          <label data-tip="+бонус за скорость выше крейсерской после ⅓ маршрута (разовый/периодический).&#10;0 = выкл. Стимулирует не сбрасывать газ на прямой."><span class="weight-name">Обгон</span><input data-weight="overtake" type="range" min="0" max="20" value="0" step="0.5"><span>0</span></label>
+          <label data-tip="−штраф за крушение (разовый ×60).&#10;Для урока 1 (прямая) — ставь 0."><span class="weight-name">Авария</span><input data-weight="crash" type="range" min="0" max="20" value="5.0" step="0.5"><span>5.0</span></label>
+          <label data-tip="+бонус за прибытие в центр финальной сферы.&#10;150 — стандарт. Меняй, если хочешь усилить/ослабить мотивацию долетать."><span class="weight-name">Терминал</span><input data-weight="terminal" type="range" min="0" max="500" value="150" step="10"><span>150</span></label>
+        </div>
+        <div id="weightTooltip" class="weight-tooltip" role="tooltip"></div>
+      </div>
+
+<div id="eventLog" style="flex-shrink:0;max-height:50px;overflow-y:auto;margin-top:8px;padding:4px 8px;background:rgba(12,14,13,0.6);border:1px solid #5ba3e8;border-radius:4px;font:700 10px/1.4 'SF Mono',monospace;color:#4ecb71;scrollbar-width:thin;"><div _ph="1" style="color:#888;font-weight:400;">Лог событий</div></div>
+    </aside>
+  </main>
+
+  <script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const TRAINING_API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://127.0.0.1:8787/api/train'
+  : 'http://neuromotion.ru:8787/api/train';
+const STORAGE_KEY = 'polygon3d.agentTraining.v1';
+const PREVIEW_KEY = 'polygon3d.previewNode.v1';
+const TRAINING_STATE_KEY = 'polygon3d.activeTraining.v1';
+var trainingStartTime = 0;
+var trainingJobProgress = 0;
+var selectedChartComps = []; // which components to show in the bar chart; empty = show all
+var COMP_CHART_COLORS = {
+  progress: '#4ecb71', waypoint: '#5ba3e8', altitude: '#38bdf8', time: '#ff6b6b',
+  vzStability: '#34d399', headingStability: '#f59e0b', pitchStability: '#c084fc',
+  speedStability: '#ec4899', slipStability: '#64748b', bankStability: '#f97316',
+  stallMargin: '#e8a830', altImpr: '#22d3ee', hdgImpr: '#a78bfa', vzImpr: '#6ee7b7',
+  pitchImpr: '#f472b6', altPredict: '#fb923c', terminal: '#e8a830', crash: '#ff4444',
+  finalApproach: '#4ade80',
+};
+
+function updateTrainingTimerDisplay() {
+  var el = document.getElementById('trainingTimerElapsed');
+  if (!el) return;
+  if (trainingStartTime > 0) {
+    var elapsed = Math.floor((Date.now() - trainingStartTime) / 1000);
+    var em = Math.floor(elapsed / 60);
+    var es = elapsed % 60;
+    var elapsedStr = (em < 10 ? '0' : '') + em + ':' + (es < 10 ? '0' : '') + es;
+    if (trainingJobProgress > 0) {
+      var eta = Math.floor(elapsed / trainingJobProgress * (1 - trainingJobProgress));
+      var etam = Math.floor(eta / 60);
+      var etas = eta % 60;
+      el.textContent = elapsedStr + ' / -' + (etam < 10 ? '0' : '') + etam + ':' + (etas < 10 ? '0' : '') + etas;
+    } else {
+      el.textContent = elapsedStr + ' / --:--';
+    }
+  } else {
+    el.textContent = '--:--:--';
+  }
+}
+
+function syncTrainingState(lesson) {
+  if (!activeTrainingKey) { try { localStorage.removeItem(TRAINING_STATE_KEY); } catch(_) {} updateTrainingStatusBar(); return; }
+  var p = parseKey(activeTrainingKey);
+  try {
+    localStorage.setItem(TRAINING_STATE_KEY, JSON.stringify({
+      key: activeTrainingKey,
+      classId: p ? p.clsId : 1,
+      branch: p ? p.branch : 'drone',
+      lessonIdx: p ? p.idx : 0,
+      title: (lesson && lesson.title) || '',
+      progress: (lesson && lesson.metrics && lesson.metrics.progress != null) ? Math.round(lesson.metrics.progress * 100) : 0,
+      status: (lesson && lesson.status) || '',
+      jobId: activeJobId,
+      updated: Date.now(),
+    }));
+  } catch(_) {}
+  updateTrainingStatusBar();
+}
+
+function updateTrainingStatusBar() {
+  var bar = document.getElementById('trainingStatusBar');
+  if (!bar) return;
+  if (!activeTrainingKey) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  var p = parseKey(activeTrainingKey);
+  var lesson = getLessonData(activeTrainingKey);
+  var label = p ? 'C' + p.clsId + (p.branch === 'anti' ? 'A' : p.branch === 'drone' ? 'D' : 'J') + 'У' + (p.idx + 1) : '';
+  document.getElementById('tsbLesson').textContent = label + ' ' + (lesson ? lesson.title || '' : '');
+  var pct = (lesson && lesson.metrics && lesson.metrics.progress != null) ? Math.round(lesson.metrics.progress * 100) : 0;
+  document.getElementById('tsbProgress').textContent = pct + '%';
+  document.getElementById('tsbTime').textContent = lesson ? lesson.status || '' : '';
+  renderNodeEstimate(lesson);
+}
+
+function renderNodeEstimate(lesson) {
+  if (!lesson || !lesson.metrics || lesson.metrics.progress == null) return;
+  var progress = lesson.metrics.progress;
+  if (progress >= 1 || progress <= 0) return;
+  var elapsed = lesson.metrics._startTime ? (Date.now() - lesson.metrics._startTime) / 1000 : 0;
+  if (elapsed < 5) return;
+  var totalEst = elapsed / progress;
+  var remaining = Math.round(totalEst - elapsed);
+  lesson.metrics._remaining = remaining;
+}
+
+const CLS_DATA = [
+  { id:1, label:'Только цель', mode:'split', color:'#5ba3e8',
+    titles:['Движение по прямой на постоянной высоте','Движение с мин на макс высоту','Движение с макс на мин высоту','Разворот на 90°','Разворот на 180°, 270° и 360°'],
+    antiTitles:['Взлёт и висение','Перемещение','Разворот на месте','Перемещение + разворот','Полёт по квадрату'] },
+  { id:2, label:'Инерция и пределы', mode:'split', color:'#e87a5b',
+    titles:['Выход на прямую с инерцией','Поворот с креном','Смена высоты с инерцией','Серпантин','Разворот на месте'],
+    antiTitles:['Инерция разгона','Торможение с точностью','Поворот с креном','Серпантин','Стабилизация'] },
+  { id:3, label:'Ограниченный обзор', mode:'split', color:'#e8a830',
+    titles:['Потеря цели','Поиск после прохода','Сканирование','Удержание в манёвре','Слепая зона'],
+    antiTitles:['Потеря цели','Сканирование сектора','Захват после прохода','Удержание в манёвре','Поиск в слепой зоне'] },
+  { id:4, label:'2.5D профиль', mode:'split', color:'#9a8fe0',
+    titles:['Выход в точку в 3D','Поворот с набором','Пике с доворотом','Ветровой снос','Порыв ветра'],
+    antiTitles:['Выход в 3D точку','Вертикальный профиль','Спираль','Ветровой снос','Восстановление'] },
+  { id:5, label:'Групповой полёт', mode:'split', color:'#f0a030',
+    titles:['Построение','Смена строя','Ротация ведущего','Групповой манёвр','Экзамен'],
+    antiTitles:['Построение роя','Синхронное движение','Распределение целей','Прикрытие','Экзамен'] },
+  { id:6, label:'Одиночный противник', mode:'joint', color:'#e04b4b',
+    titles:['Уклонение от лобовой','Контрманёвр','Смена высоты','Ложный манёвр','Достижение под давлением'] },
+  { id:7, label:'Адаптивность', mode:'joint', color:'#3ecaa5',
+    titles:['Распознавание паттерна','Смена стратегии','Обучение на эпизодах','Ловушка','Многоходовка'] },
+  { id:8, label:'ПВО', mode:'joint', color:'#e87a5b',
+    titles:['Прорыв ПВО на малой','Зенитный манёвр','Подавление','Маршрут огибания','Прорыв с ложными целями'] },
+  { id:9, label:'Рой', mode:'joint', color:'#e8a830',
+    titles:['Уклонение от роя','Контратака','Распознавание тактики','Противодействие рой-рою','Подавление роя'] },
+  { id:10, label:'Ресурсы', mode:'joint', color:'#5ba3e8',
+    titles:['Экономия топлива','Управление боекомплектом','Разведка и возврат','Приоритет целей','Максимум эффекта'] },
+  { id:11, label:'Полный сценарий', mode:'joint', color:'#4ecb71',
+    titles:['Взлёт и разведка','Прорыв ПВО','Бой с роем','Удар по цели','Возврат на базу'] },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let currentTab = 0;
+let selectedKey = null;
+let activeBranch = 'all';
+let lessonData = {};
+let activeTrainingKey = null;
+let activeJobId = null;
+let trainingTimer = null;
+let trainingChain = [];
+let chainIndex = 0;
+let trainingMode = 'manual';
+
+var convergeRetries = {};
+var MAX_CONVERGE_RETRIES = 5;
+var MAX_CONVERGE_TOTAL_EPISODES = 120;
+var lastInspectorKey = null;
+
+var WEIGHT_PROFILES = [
+  { progress: 1.0, waypoint: 2.0, precision: 1.0, altitude: 0.05, time: 0.01, crash: 5.0 },
+  { progress: 1.5, waypoint: 3.0, precision: 1.5, altitude: 0.08, time: 0.01, crash: 6.0 },
+  { progress: 2.0, waypoint: 4.0, precision: 2.0, altitude: 0.12, time: 0.01, crash: 8.0 },
+  { progress: 1.0, waypoint: 2.0, precision: 2.5, altitude: 0.05, time: 0.01, crash: 5.0 },
+  { progress: 1.5, waypoint: 3.0, precision: 1.0, altitude: 0.05, time: 0.01, crash: 10.0 },
+];
+
+function isLessonConverged(chart) {
+  var rewards = chart && chart.rewards;
+  if (!Array.isArray(rewards) || rewards.length < 5) return false;
+  var evals = chart && chart.evals;
+  if (Array.isArray(evals) && evals.length) {
+    var lastEval = evals[evals.length - 1];
+    if (lastEval && lastEval.of && lastEval.arrived < lastEval.of) return false;
+  }
+  var last = rewards.slice(-5);
+  var avg = last.reduce(function(s, v) { return s + v; }, 0) / last.length;
+  if (avg <= 0) return false;
+  var min = Math.min.apply(null, last);
+  var max = Math.max.apply(null, last);
+  return (max - min) / Math.abs(avg) < 0.15;
+}
+
+function getLessonBatchEpisodes(lesson) {
+  return Math.max(1, Number(lesson?.train?.episodes) || 20);
+}
+
+function getLessonDoneEpisodes(lesson) {
+  return Math.max(0, Number(lesson?.convergeEpisodes || lesson?.totalEpisodes || 0));
+}
+
+function getLessonDisplayTargetEpisodes(lesson, key) {
+  var batch = getLessonBatchEpisodes(lesson);
+  var done = getLessonDoneEpisodes(lesson);
+  var retries = key ? (convergeRetries[key] || 0) : 0;
+  var isAutoConverging = retries > 0 || done > batch;
+  var hardLimit = getLessonAutoConvergeLimit(lesson);
+  if (lesson?.convergeEpisodes) return done > hardLimit ? hardLimit : Math.max(batch, done);
+  if (isAutoConverging) return hardLimit;
+  return Math.max(done, batch);
+}
+
+function getLessonAutoConvergeLimit(lesson) {
+  var batch = getLessonBatchEpisodes(lesson);
+  return Math.max(batch, Math.min(batch * (MAX_CONVERGE_RETRIES + 1), MAX_CONVERGE_TOTAL_EPISODES));
+}
+
+function getLessonRunEpisodes(lesson, key, resume) {
+  var batch = getLessonBatchEpisodes(lesson);
+  if (!resume || !(key && convergeRetries[key] > 0)) return batch;
+  var remaining = getLessonAutoConvergeLimit(lesson) - getLessonDoneEpisodes(lesson);
+  return Math.max(1, Math.min(batch, remaining));
+}
+
+function getClsById(id) { for (var i = 0; i < CLS_DATA.length; i++) { if (CLS_DATA[i].id === id) return CLS_DATA[i]; } return null; }
+function getClsByTab(tabIdx) { return CLS_DATA[tabIdx] || null; }
+function lessonKey(clsId, branch, idx) { return 'c' + clsId + '_' + branch + '_l' + idx; }
+function parseKey(k) { var m = k.match(/c(\d+)_(\w+)_l(\d+)/); if (!m) return null; return { clsId: Number(m[1]), branch: m[2], idx: Number(m[3]) }; }
+function classLabel(clsId, branch, pad) {
+  var prefix = (clsId >= 1 && clsId <= 5 && branch === 'anti') ? 'A' : 'C';
+  return prefix + (pad ? String(clsId).padStart(2, '0') : clsId);
+}
+
+function getLessonData(key) { return lessonData[key] || null; }
+function setLessonData(key, data) { lessonData[key] = data; }
+
+// ═══════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+function saveState() {
+  try {
+    var selIdx = -1;
+    if (selectedKey) { var p = parseKey(selectedKey); if (p) selIdx = p.idx; }
+    var payload = { version: 1, currentClass: currentTab + 1, currentLesson: selIdx >= 0 ? selIdx : 0, selectedKey: selectedKey || null, lessons: lessonData, currentBranch: activeBranch, trainingMode: trainingMode };
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        var existing = JSON.parse(raw);
+        if (existing.progressPct != null) payload.progressPct = existing.progressPct;
+      } catch(_) {}
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (_) {}
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (data.currentClass) currentTab = data.currentClass - 1;
+    if (data.currentBranch) {
+      if (data.currentBranch === 'drone' || data.currentBranch === 'anti' || data.currentBranch === 'joint') activeBranch = data.currentBranch;
+    }
+    if (data.lessons) {
+      Object.keys(data.lessons).forEach(function(k) {
+        var migrated = k.replace(/^(\w+_\w+)_(\d+)$/, '$1_l$2');
+        lessonData[migrated] = data.lessons[k];
+      });
+    }
+    if (data.trainingMode === 'auto' || data.trainingMode === 'manual') trainingMode = data.trainingMode;
+    // Restore selectedKey from saved state
+    if (data.selectedKey) {
+      selectedKey = data.selectedKey;
+    } else if (data.currentLesson != null && data.currentLesson > 0) {
+      var branch = activeBranch === 'joint' ? 'joint' : 'drone';
+      selectedKey = lessonKey(currentTab + 1, branch, data.currentLesson);
+    }
+  } catch (_) { lessonData = {}; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderTabs() {
+  var el = document.getElementById('clsTabs');
+  if (!el) return;
+  var html = '';
+  // Anti tabs A1-A5 for split classes
+  for (var i = 0; i < CLS_DATA.length; i++) {
+    if (CLS_DATA[i].mode !== 'split') continue;
+    var active = (i === currentTab && activeBranch === 'anti') ? ' active' : '';
+    html += '<div class="cls-tab' + active + '" data-idx="' + i + '" data-branch="anti">' + classLabel(i + 1, 'anti', false) + '</div>';
+  }
+  // Drone tabs C1-C5 for split classes
+  for (var i = 0; i < CLS_DATA.length; i++) {
+    if (CLS_DATA[i].mode !== 'split') continue;
+    var active = (i === currentTab && activeBranch !== 'anti') ? ' active' : '';
+    html += '<div class="cls-tab' + active + '" data-idx="' + i + '" data-branch="drone">' + classLabel(i + 1, 'drone', false) + '</div>';
+  }
+  // Joint tabs C6-C11
+  for (var i = 0; i < CLS_DATA.length; i++) {
+    if (CLS_DATA[i].mode !== 'joint') continue;
+    var active = i === currentTab ? ' active' : '';
+    html += '<div class="cls-tab' + active + '" data-idx="' + i + '" data-branch="joint">' + classLabel(i + 1, 'joint', false) + '</div>';
+  }
+  html += '';
+  el.innerHTML = html;
+  el.querySelectorAll('.cls-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var idx = Number(tab.dataset.idx);
+      if (idx >= CLS_DATA.length) return; // faculty disabled
+      var newBranch = tab.dataset.branch;
+      if (idx === currentTab && (!newBranch || newBranch === activeBranch)) return;
+      currentTab = idx;
+      if (newBranch) {
+        activeBranch = newBranch;
+      }
+      selectedKey = null;
+      renderTabs();
+      renderCanvas();
+      clearInspector();
+      saveState();
+    });
+  });
+}
+
+function autoSelectFirst() {
+  if (selectedKey) return;
+  if (currentTab >= CLS_DATA.length) return;
+  var cls = getClsByTab(currentTab);
+  if (!cls) return;
+  var branch = activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti';
+  if (cls.mode === 'joint') branch = 'joint';
+  selectedKey = lessonKey(cls.id, branch, 0);
+}
+
+function renderCanvas() {
+  autoSelectFirst();
+  var canvas = document.getElementById('lessonCanvas');
+  if (!canvas) return;
+  if (currentTab >= CLS_DATA.length) {
+    renderFacultyView();
+    return;
+  }
+  var cls = getClsByTab(currentTab);
+  if (!cls) { canvas.innerHTML = '<div class="ls-placeholder">Нет данных</div>'; return; }
+
+  var branch = activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti';
+  if (cls.mode === 'joint') branch = 'joint';
+  var count = 5;
+  var titles = cls.mode === 'split' && branch === 'anti' ? cls.antiTitles : cls.titles;
+  var html = '<div class="ls-row">';
+  for (var i = 0; i < count; i++) {
+    var key = lessonKey(cls.id, branch, i);
+    var lesson = getLessonData(key) || { title: titles[i], status: 'готов к запуску', metrics: {} };
+    var isSelected = selectedKey === key;
+    var isTraining = activeTrainingKey === key;
+    var isCompleted = lesson.status && lesson.status.indexOf('заверш') !== -1;
+    var isLocked = false;
+    var parentK = getParentLessonKey(key);
+    if (parentK) {
+      var parentD = getLessonData(parentK);
+      isLocked = !parentD || !parentD.best;
+    }
+    var clsName = 'ls-node' + (isSelected ? ' selected' : '') + (isTraining ? ' training' : '') + (isCompleted ? ' completed' : '') + (isLocked ? ' locked' : '');
+    var totalEps = getLessonDisplayTargetEpisodes(lesson, key);
+    var doneEps = getLessonDoneEpisodes(lesson);
+    var pct = isCompleted ? 100 : Math.min(100, Math.round(doneEps / totalEps * 100));
+    var barColor = isCompleted ? '#5ba3e8' : isTraining ? '#e8a830' : '#555';
+    var r = lesson.metrics && lesson.metrics.reward;
+    var d = lesson.metrics && lesson.metrics.delta;
+    html += '<div class="' + clsName + '" data-key="' + key + '">' +
+      '<button class="ls-reset-btn" title="Сбросить урок">×</button>' +
+      '<div class="ls-num">УРОК ' + (i + 1) + '</div>' +
+      '<div class="ls-title">' + lesson.title + '</div>' +
+      '<div class="ls-bar"><span class="ls-bar-fill" style="width:' + pct + '%"></span><span class="ls-bar-text">' + doneEps + '/' + totalEps + '</span></div>' +
+      '<div class="ls-status">' + (lesson.status || '') + '</div>' +
+      (lesson.metrics && lesson.metrics._remaining ? '<div class="ls-remain">осталось ~' + lesson.metrics._remaining + 'с</div>' : '') +
+      '<div class="ls-metrics">' +
+        (r != null ? '<span class="good">R ' + Number(r).toFixed(2) + '</span>' : '') +
+        (d != null ? '<span>Δ ' + Number(d).toFixed(2) + '</span>' : '') +
+        (lesson.latest ? '<span class="warn"> ✓ cp</span>' : '') +
+      '</div></div>';
+    if (i < count - 1) {
+      var prevKey = lessonKey(cls.id, branch, i);
+      var prevData = getLessonData(prevKey);
+      var ready = prevData && prevData.status && prevData.status.indexOf('заверш') !== -1;
+      html += '<div class="ls-arrow' + (ready ? ' ready' : '') + '"></div>';
+    }
+  }
+  html += '</div>';
+  canvas.innerHTML = html;
+
+  canvas.querySelectorAll('.ls-node').forEach(function(node) {
+    node.addEventListener('click', function() {
+      if (node.classList.contains('locked')) return;
+      selectedKey = node.dataset.key;
+      showToast('урок выбран: ' + selectedKey);
+      renderCanvas();
+      populateInspector(selectedKey);
+    });
+  });
+  canvas.querySelectorAll('.ls-reset-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var key = btn.parentElement.dataset.key;
+      if (!confirm('Сбросить прогресс урока ' + (btn.parentElement.querySelector('.ls-title')?.textContent || key) + '? Это удалит чекпоинты и историю обучения.')) return;
+      resetLesson(key);
+    });
+  });
+  renderBannerSchema();
+  updateProgress();
+}
+
+function clearInspector() {
+  var setT = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  setT('nodeReward', '-'); setT('nodeBestReward', '-'); setT('nodeEmaReward', '-');
+  setT('nodeDelta', '-'); setT('nodeProgress', '-'); setT('nodeConverge', '-');
+  setT('nodeLatest', '-'); setT('nodeBest', '-'); setT('nodeSimReady', '-');
+  setT('trcEpisode', '');
+  setT('rewardEpBadge', '—');
+  // Очистка панели «Состав награды» — прочерки
+  var trcIds = ['trcProgress','trcWaypoint','trcPrecision','trcAltitude','trcTime','trcCrash',
+    'trcVz','trcHeading','trcPitch','trcSpeed','trcSlip','trcBank','trcStall',
+    'trcOvertake','trcAltImpr','trcHdgImpr','trcVzImpr','trcPitchImpr',
+    'trcAltPredict','trcFinalApproach','trcTerminal','trcTotal'];
+  for (var i = 0; i < trcIds.length; i++) {
+    var el = document.getElementById(trcIds[i]);
+    if (el) { el.textContent = '-'; el.style.color = ''; }
+  }
+  var lossEl = document.getElementById('nodeLoss'); if (lossEl) lossEl.textContent = '-';
+  var imEl = document.getElementById('nodeImitation'); if (imEl) imEl.textContent = '-';
+  setSvgSpark('rewardSpark', []); setSvgSpark('lossSpark', []); renderEvalSpark('evalSpark', [], 0);
+  var s = document.getElementById('btnStartNode'); if (s) { s.disabled = false; s.textContent = 'Запуск RL'; }
+  var r = document.getElementById('btnResumeNode'); if (r) r.disabled = false;
+  var st = document.getElementById('btnStopNode'); if (st) st.disabled = true;
+  var pv = document.getElementById('btnPreviewNode'); if (pv) pv.disabled = false;
+}
+
+function populateInspector(key) {
+  if (!key) { clearInspector(); return; }
+  var p = parseKey(key);
+  if (!p) { clearInspector(); return; }
+  var cls = getClsById(p.clsId);
+  if (!cls) { clearInspector(); return; }
+  var lesson = getLessonData(key);
+  if (!lesson) { clearInspector(); return; }
+
+  var setT = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  var m = lesson.metrics || {};
+  var rwEl = document.getElementById('nodeReward');
+  if (rwEl) { rwEl.textContent = formatMetric(m.reward); rwEl.style.color = m.reward != null && m.reward < 20 ? '#ff4444' : '#fff'; }
+  setT('nodeBestReward', formatMetric(m.bestReward));
+  setT('nodeEmaReward', m.emaReward != null ? formatMetric(m.emaReward) : '-');
+  setT('nodeDelta', formatMetric(m.delta));
+  setT('nodeProgress', formatPercent(m.progress));
+  var convEl = document.getElementById('nodeConverge');
+  if (convEl) {
+    var retries = convergeRetries[key] || 0;
+    var profileIdx = lesson.weightProfileIdx || 0;
+    var profileTag = profileIdx > 0 ? ' · прф ' + (profileIdx + 1) + '/' + WEIGHT_PROFILES.length : '';
+    convEl.textContent = isLessonConverged(lesson.chart) ? 'сошлось' + profileTag
+      : retries > 0 ? 'добучение ' + retries + '/' + MAX_CONVERGE_RETRIES + profileTag
+      : lesson.chart && lesson.chart.rewards && lesson.chart.rewards.length >= 5 ? 'не сошлось' + profileTag : 'ждём данные';
+    convEl.style.color = isLessonConverged(lesson.chart) ? '#e8a830' : '';
+  }
+  var evalArrEl = document.getElementById('nodeEvalArrival');
+  if (evalArrEl) {
+    var lastEval = m.eval || (lesson.chart && lesson.chart.evals && lesson.chart.evals.length ? lesson.chart.evals[lesson.chart.evals.length - 1] : null);
+    if (lastEval && lastEval.of) {
+      var trend = '';
+      var evalsArr = lesson.chart && lesson.chart.evals;
+      if (Array.isArray(evalsArr) && evalsArr.length >= 2) {
+        var prev = evalsArr[evalsArr.length - 2];
+        var diff = (lastEval.meanReward || 0) - (prev.meanReward || 0);
+        trend = diff > 0.5 ? ' ▲' : diff < -0.5 ? ' ▼' : ' ―';
+      }
+      evalArrEl.textContent = lastEval.arrived + '/' + lastEval.of + ' · R ' + (lastEval.meanReward || 0).toFixed(1) + trend;
+      evalArrEl.style.color = lastEval.arrived >= lastEval.of ? '#4ecb71' : lastEval.arrived > 0 ? '#e8a830' : '#ff4444';
+    } else {
+      evalArrEl.textContent = '';
+      evalArrEl.style.color = '#4ecb71';
+    }
+  }
+  var lossEl = document.getElementById('nodeLoss');
+  if (lossEl) lossEl.textContent = m.loss != null ? Number(m.loss).toFixed(4) : '-';
+  var imEl = document.getElementById('nodeImitation');
+  if (imEl) imEl.textContent = lesson.ppo?.imitationWeight != null ? Number(lesson.ppo.imitationWeight).toFixed(2) : '-';
+
+  // Состав награды — взвешенный вклад каждого компонента (raw × weight) для
+  // ВЫБРАННОГО эпизода (клик по бару награды → lesson.selEp), по умолчанию последний.
+  renderRewardComps(lesson);
+
+  setT('nodeLatest', lesson.latest || (lesson.status && lesson.status.indexOf('готов') !== -1 ? 'локально' : 'не найден'));
+  setT('nodeBest', lesson.best || (lesson.status && lesson.status.indexOf('готов') !== -1 ? 'не обучен' : 'не найден'));
+  setT('nodeSimReady', lesson.latest || lesson.best ? 'готов · ' + (lesson.best ? 'best' : 'latest') : 'нет чекпоинта');
+
+  var lrInp = document.getElementById('nodeLr');
+  if (lrInp) lrInp.value = String(lesson.ppo ? lesson.ppo.lr : 0.0001);
+  var imInp = document.getElementById('nodeImitationWeight');
+  if (imInp) imInp.value = String(lesson.ppo?.imitationWeight ?? 0);
+  var imAuto = document.getElementById('chkAutoImitation');
+  if (imAuto) imAuto.checked = Number(lesson.ppo?.imitationAuto) === 1;
+  var imEnd = document.getElementById('nodeImitationEnd');
+  if (imEnd) imEnd.value = String(lesson.ppo?.imitationEnd ?? 0.1);
+  var enInp = document.getElementById('nodeEntropyCoef');
+  if (enInp) enInp.value = String(lesson.ppo?.entropyCoef ?? 0.010);
+  var klInp = document.getElementById('nodeTargetKL');
+  if (klInp) klInp.value = String(lesson.ppo?.targetKL ?? 0.02);
+
+  var awChk = document.getElementById('chkAutoWeights');
+  if (awChk) awChk.checked = Number(lesson.ppo?.autoWeights) === 1;
+
+  if (key !== lastInspectorKey) {
+    lastInspectorKey = key;
+    var epInp = document.getElementById('nodeEpisodesInput');
+    if (epInp) epInp.value = String(getLessonBatchEpisodes(lesson));
+    var exEp = document.getElementById('nodeExtraEpisodes');
+    if (exEp) exEp.value = String(lesson.train?.extraEpisodes || 0);
+    var exSe = document.getElementById('nodeExtraSessions');
+    if (exSe) exSe.value = String(lesson.train?.extraSessions || 0);
+    updateExtraTotal();
+  }
+
+  var w = lesson.weights || { progress:0.5, waypoint:1.0, precision:0, altitude:1.0, time:0.01, crash:5.0 };
+  document.querySelectorAll('#nodeWeights input[data-weight]').forEach(function(input) {
+    var val = w[input.dataset.weight];
+    if (val != null) { input.value = String(val); if (input.nextElementSibling) input.nextElementSibling.textContent = String(val); }
+  });
+
+  var busy = activeTrainingKey === key;
+  var startBtn = document.getElementById('btnStartNode');
+  var resumeBtn = document.getElementById('btnResumeNode');
+  var stopBtn = document.getElementById('btnStopNode');
+  var previewBtn = document.getElementById('btnPreviewNode');
+  if (startBtn) { startBtn.disabled = busy; startBtn.textContent = busy ? 'ОБУЧЕНИЕ' : 'ЗАПУСК RL'; }
+  if (resumeBtn) resumeBtn.disabled = busy;
+  if (stopBtn) stopBtn.disabled = !busy;
+  if (previewBtn) previewBtn.disabled = false;
+
+  var chart = lesson.chart || {};
+  renderRewardBars('rewardSpark', chart.rewards, chart.comps, lesson.selEp);
+  // Синхронизация графика с живыми данными Split-view
+  try {
+    var lbRaw2 = localStorage.getItem('polygon3d.liveBreakdown.v1');
+    if (lbRaw2) {
+      var lb2 = JSON.parse(lbRaw2);
+      var si2 = (lesson.selEp != null && lesson.selEp >= 0 && lesson.selEp < (chart.rewards?.length || 0)) ? lesson.selEp : (chart.rewards?.length ? chart.rewards.length - 1 : -1);
+      if (lb2 && lb2.nodeKey === key && lb2.epIdx === si2 && lb2.components && chart.rewards && si2 >= 0) {
+        var synced2 = chart.rewards.slice();
+        synced2[si2] = lb2.components.total;
+        renderRewardBars('rewardSpark', synced2, chart.comps, si2);
+      }
+    }
+  } catch (_) {}
+  setSvgSpark('lossSpark', chart.losses);
+  renderEvalSpark('evalSpark', chart.evals, (lesson.resumeFrom ?? 0) + (lesson.completed ?? 0));
+
+  var ckEl = document.getElementById('nodeCheckpointStatus');
+  var lightEl = document.getElementById('diskStatusLight');
+  if (ckEl) {
+    var hasDiskCheckpoints = !!lesson.latest || !!lesson.best;
+    var hasBrowserData = (lesson.metrics && lesson.metrics.progress > 0) || (chart.rewards && chart.rewards.length > 0) || (chart.evals && chart.evals.length > 0);
+    if (!hasDiskCheckpoints && hasBrowserData) {
+      ckEl.textContent = '⚠ файлы чекпойнтов на диске отсутствуют, метрики сохранены только в браузере. Используйте "Persist to disk" чтобы сохранить на диск.';
+      ckEl.style.display = 'block';
+    } else {
+      ckEl.style.display = 'none';
+    }
+    if (lightEl) {
+      lightEl.style.background = hasDiskCheckpoints ? '#4ecb71' : '#333';
+      lightEl.style.boxShadow = hasDiskCheckpoints ? '0 0 6px rgba(78,203,113,0.7)' : 'none';
+    }
+  }
+
+  // Загружаем конфиг урока с сервера (веса + параметры) из .txt файла
+  if (key) loadLessonConfig(key);
+  loadHistory(key);
+}
+
+function updateProgress() {
+  var el = document.getElementById('progressContent');
+  if (!el) return;
+  try {
+    var total = 0, done = 0, active = 0;
+    var sumPct = 0;
+    var keys = Object.keys(lessonData);
+    for (var i = 0; i < keys.length; i++) {
+      var l = lessonData[keys[i]];
+      if (!l) continue;
+      total++;
+      var p = l.metrics && l.metrics.progress != null ? Number(l.metrics.progress) : 0;
+      if (p > 0 || (l.status && (l.status.indexOf('заверш') !== -1 || l.status.indexOf('обучается') !== -1 || l.status.indexOf('продолжение') !== -1 || l.status.indexOf('остановлено') !== -1 || l.status.indexOf('ошибка') !== -1))) {
+        active++;
+        if (l.status && l.status.indexOf('заверш') !== -1) { p = 1; done++; }
+        sumPct += p;
+      }
+    }
+    var denom = active > 0 ? active : 1;
+    var avgPct = Math.round(sumPct / denom * 100);
+    var barColor = avgPct >= 100 ? '#5ba3e8' : avgPct > 0 ? '#5ba3e8' : '#555';
+    el.innerHTML = '<div class="prog-bar"><div class="prog-fill" style="width:' + avgPct + '%"></div></div>' +
+      '<div class="prog-text"><span style="color:#4ecb71">' + done + '</span> из <span style="color:#aaa">' + active + '</span> уроков завершено · <span style="float:right;color:#999">' + avgPct + '%</span></div>';
+  } catch(_) { el.innerHTML = '—'; }
+}
+
+function setSvgSpark(id, values) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = typeof values === 'string' ? values : renderSparkPath(values, { signed: false });
+}
+
+function renderEvalSpark(id, evals, totalEpisodes) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!Array.isArray(evals) || evals.length === 0 || !totalEpisodes) {
+    el.innerHTML = '<text x="4" y="20" fill="#555" font-size="8">—</text>';
+    return;
+  }
+  var parts = [];
+  var total = Math.max(totalEpisodes, evals.length * 10);
+  var chartW = 100, chartH = 62;
+  // Build component list from selection — if empty, use all known comps
+  var allComps = ['progress','terminal','time','pitchStability','altitude','waypoint','vzStability','headingStability','speedStability','slipStability','bankStability','stallMargin','altImpr','hdgImpr','vzImpr','pitchImpr','altPredict','crash','finalApproach'];
+  var compKeys;
+  if (selectedChartComps.length > 0) {
+    compKeys = selectedChartComps.map(function(k) { return { key: k, color: COMP_CHART_COLORS[k] || '#888' }; });
+  } else {
+    compKeys = [
+      { key: 'progress',      color: '#4ecb71' },
+      { key: 'terminal',      color: '#e8a830' },
+      { key: 'pitchStability',color: '#c084fc' },
+      { key: 'time',          color: '#ff6b6b' },
+      { key: 'altitude',      color: '#38bdf8' },
+    ];
+  }
+  // Find max positive value across all checkpoints for scale
+  var maxVal = 1;
+  for (var i = 0; i < evals.length; i++) {
+    var e = evals[i];
+    if (e && e.comps) {
+      for (var ci = 0; ci < compKeys.length; ci++) {
+        var v = Math.abs(e.comps[compKeys[ci].key] || 0);
+        if (v > maxVal) maxVal = v;
+      }
+    }
+  }
+  var scale = maxVal > 0 ? (chartH - 8) / maxVal : 1;
+  // For each eval point draw a group of bars
+  var barW = 2.2;
+  for (var i = 0; i < evals.length; i++) {
+    var e = evals[i];
+    if (!e) continue;
+    var epIdx = (i + 1) * 10 - 1;
+    if (epIdx >= total) epIdx = total - 1;
+    var x = total > 1 ? (epIdx / (total - 1)) * chartW : chartW / 2;
+    // Y-axis baseline (added small background lines)
+    if (i === 0) {
+      parts.push('<line x1="0" y1="' + (chartH - 4) + '" x2="' + chartW + '" y2="' + (chartH - 4) + '" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>');
+    }
+    if (e.comps) {
+      var groupW = compKeys.length * (barW + 0.5);
+      var barX = x - groupW / 2;
+      for (var ci = 0; ci < compKeys.length; ci++) {
+        var val = e.comps[compKeys[ci].key] || 0;
+        var absVal = Math.abs(val);
+        var barH = Math.min(absVal * scale, chartH - 8);
+        var by = chartH - 4 - (val >= 0 ? barH : 0);
+        var bh = Math.max(barH, 0.5);
+        var bx = barX + ci * (barW + 0.5);
+        parts.push('<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="' + compKeys[ci].color + '" opacity="0.8" rx="0.3"/>');
+      }
+    } else {
+      // Fallback: show arrival dot
+      var color = e.arrived >= 3 ? '#4ecb71' : e.arrived >= 2 ? '#e8a830' : '#ff4444';
+      parts.push('<circle cx="' + x.toFixed(1) + '" cy="' + (chartH - 8) + '" r="3" fill="' + color + '" opacity="0.5"/>');
+    }
+  }
+  el.innerHTML = parts.join('');
+}
+
+function renderSparkPath(values, options) {
+  options = options || {};
+  var series = Array.isArray(values) && values.length ? values : [0, 0];
+  var absMax = Math.max(1e-6);
+  series.forEach(function(v) { absMax = Math.max(absMax, Math.abs(Number(v) || 0)); });
+  var min = options.signed ? -absMax : Math.min.apply(null, series);
+  var max = options.signed ? absMax : Math.max.apply(null, series);
+  var span = Math.max(1e-6, max - min);
+  var points = series.map(function(value, index) {
+    var x = series.length === 1 ? 100 : (index / (series.length - 1)) * 100;
+    var y = 36 - ((value - min) / span) * 30;
+    return Math.round(x * 10) / 10 + ',' + Math.round(y * 10) / 10;
+  }).join(' ');
+  var zeroLine = options.signed ? '<line x1="0" y1="21" x2="100" y2="21" class="zero-line"></line>' : '';
+  return zeroLine + '<polyline points="' + points + '"></polyline>';
+}
+
+// Кликабельный мини-график наград: каждый бар = эпизод, клик выбирает его для
+// «Состава награды» (selectEpisode). Зелёный — прибытие (terminal > 0), жёлтый — выбран.
+function renderRewardBars(id, values, comps, selected) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var badge = document.getElementById('rewardEpBadge');
+  if (!Array.isArray(values) || !values.length) {
+    el.innerHTML = '<text x="4" y="22" fill="#555" font-size="8">—</text>';
+    if (badge) badge.textContent = '—';
+    return;
+  }
+  var n = values.length;
+  var selIdx = (selected != null && selected >= 0 && selected < n) ? selected : n - 1;
+  if (badge) badge.textContent = (selIdx + 1) + '/' + n;
+  var chartW = 100, chartH = 40;
+  var absMax = 1e-6;
+  values.forEach(function(v) { absMax = Math.max(absMax, Math.abs(Number(v) || 0)); });
+  var span = absMax > 0 ? absMax : 1;
+  var zeroY = chartH - 4;
+  var parts = ['<line x1="0" y1="' + zeroY.toFixed(1) + '" x2="' + chartW + '" y2="' + zeroY.toFixed(1) + '" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>'];
+  var bw = chartW / n;
+  for (var i = 0; i < n; i++) {
+    var v = Number(values[i]) || 0;
+    var h = Math.min(chartH - 8, Math.abs(v) / span * (chartH - 8));
+    var color = '#5ba3e8';
+    if (comps && comps[i] && comps[i].terminal > 0) color = '#4ecb71';
+    if (i === selected) color = '#e8a830';
+    parts.push('<rect x="' + (i * bw).toFixed(3) + '" y="' + (v >= 0 ? zeroY - h : zeroY).toFixed(2) +
+      '" width="' + Math.max(0.5, bw - 0.4).toFixed(3) + '" height="' + Math.max(0.6, h).toFixed(2) +
+      '" fill="' + color + '" opacity="0.9" rx="0.3" style="cursor:pointer" title="эп. ' + (i + 1) + ' · R ' + v.toFixed(0) + '"/>');
+  }
+  el.innerHTML = parts.join('');
+  el.title = 'Клик по бару — показать состав награды эпизода';
+  el.onclick = function(e) {
+    var rect = el.getBoundingClientRect();
+    if (!rect.width) return;
+    var x = (e.clientX - rect.left) / rect.width * chartW;
+    var idx = Math.min(n - 1, Math.max(0, Math.floor(x / bw)));
+    selectEpisode(idx);
+  };
+}
+
+// Выбор эпизода для панели «Состав награды».
+function selectEpisode(idx) {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (idx != null && idx >= 0) lesson.selEp = idx;
+  var chart = lesson.chart || {};
+  renderRewardBars('rewardSpark', chart.rewards, chart.comps, lesson.selEp);
+  renderRewardComps(lesson);
+  // Синхронизируем столбец графика: если есть живые данные от Split-view,
+  // высота столбца выбранного эпизода должна совпадать с суммой состава награды.
+  try {
+    var lbRaw = localStorage.getItem('polygon3d.liveBreakdown.v1');
+    if (lbRaw) {
+      var lb = JSON.parse(lbRaw);
+      var selIdx = lesson.selEp;
+      if (lb && lb.nodeKey === selectedKey && lb.epIdx === selIdx && lb.components && chart.rewards && selIdx >= 0) {
+        var synced = chart.rewards.slice();
+        synced[selIdx] = lb.components.total;
+        renderRewardBars('rewardSpark', synced, chart.comps, selIdx);
+      }
+    }
+  } catch (_) {}
+  saveState();
+}
+
+// Панель «Состав награды»: взвешенный вклад (raw × weight) для выбранного эпизода.
+// Приоритет: живые данные из Split-view (localStorage), сохранённые renderRewardBreakdown.
+// Они всегда совпадают с визуальной симуляцией (терминал +150 при прибытии и т.д.).
+// Если живых данных нет — считаем по историческим raw-компонентам из обучения.
+function renderRewardComps(lesson) {
+  if (!lesson) return;
+  var setT = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  var fmtSV = function(v) { return (v >= 0 ? '+' : '') + Number(v).toFixed(3); };
+  var chart = lesson.chart || {};
+  var comps = null;
+  var epLabel = null;
+  var selIdx = chart.comps && chart.comps.length ? (lesson.selEp != null && lesson.selEp >= 0 && lesson.selEp < chart.comps.length ? lesson.selEp : chart.comps.length - 1) : -1;
+  if (selIdx >= 0) {
+    epLabel = 'эп. ' + (selIdx + 1) + '/' + chart.comps.length;
+  }
+
+  // ── живые данные от Split-view (единый источник правды) ──
+  try {
+    var lbRaw = localStorage.getItem('polygon3d.liveBreakdown.v1');
+    if (lbRaw) {
+      var lb = JSON.parse(lbRaw);
+      if (lb && lb.nodeKey === selectedKey && lb.epIdx === selIdx && lb.components && chart.comps && chart.comps.length > 0) {
+        var lc = lb.components;
+        var trcMap = ['Progress','Waypoint','Precision','Altitude','Time','Crash',
+          'Vz','Heading','Pitch','Speed','Slip','Bank','Stall','Overtake',
+          'AltImpr','HdgImpr','VzImpr','PitchImpr','AltPredict','FinalApproach','Terminal'];
+        for (var mi = 0; mi < trcMap.length; mi++) {
+          var val = lc[trcMap[mi]];
+          if (val != null) setT('trc' + trcMap[mi], fmtSV(val));
+        }
+        setT('trcTotal', fmtSV(lc.total));
+        var epEl2 = document.getElementById('trcEpisode');
+        if (epEl2) epEl2.textContent = epLabel ? epLabel : '—';
+        // Подсветка: макс красный, мин зелёный, сумма жёлтый
+        var allVals = [];
+        for (var ai = 0; ai < trcMap.length; ai++) {
+          var av = lc[trcMap[ai]]; if (av != null) allVals.push(['trc' + trcMap[ai], av]);
+        }
+        var maxV = -Infinity, minV = Infinity, maxI = -1, minI = -1;
+        for (var bj = 0; bj < allVals.length; bj++) {
+          var bv = allVals[bj][1]; if (bv > maxV) { maxV = bv; maxI = bj; } if (bv < minV) { minV = bv; minI = bj; }
+        }
+        for (var cj = 0; cj < allVals.length; cj++) {
+          var cel = document.getElementById(allVals[cj][0]);
+          if (!cel) continue;
+          cel.style.color = cj === maxI ? '#ff5b5b' : (cj === minI ? '#4ecb71' : '');
+          var label = cel.parentNode ? cel.parentNode.querySelector('span') : null;
+          if (label) label.style.color = cel.style.color === '#ff5b5b' ? '#ff5b5b' : (cel.style.color === '#4ecb71' ? '#4ecb71' : '');
+        }
+        var totalEl2 = document.getElementById('trcTotal');
+        if (totalEl2) { totalEl2.style.color = '#e8a830';
+          var tl2 = totalEl2.parentNode ? totalEl2.parentNode.querySelector('span') : null;
+          if (tl2) tl2.style.color = '#e8a830'; }
+        return; // ← живые данные использованы, пропускаем расчёт по историческим raw
+      }
+    }
+  } catch (_) {}
+
+  if (selIdx >= 0) comps = chart.comps[selIdx] || null;
+  if (!comps && lesson.metrics && lesson.metrics.rewardComponentsTotal) {
+    comps = lesson.metrics.rewardComponentsTotal;
+    epLabel = epLabel || 'последний';
+  }
+  var epEl = document.getElementById('trcEpisode');
+  if (epEl) epEl.textContent = epLabel ? epLabel : '—';
+
+  var w = lesson.weights || {};
+  var totalEst = 0;
+  var fmtW = function(v) { return (v >= 0 ? '+' : '') + v.toFixed(3); };
+  var compVals = [];
+  // Фолбэки весов — как в Simulation.computeReward (src/simulation.js), иначе панель
+  // расходится с реальным reward в симуляции для ключей, которых нет в уроке.
+  var WDEF = {
+    vzStability: 0.05, headingStability: 0.05, pitchStability: 0.05, speedStability: 0.05,
+    stallMargin: 1.0, finalApproach: 5, slipStability: 0, rollStability: 0, bankStability: 0,
+  };
+  var setW = function(id, key, neg, wVal) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!comps) {
+      el.textContent = '-' + (neg ? ' ' : '');
+      compVals.push([id, 0]);
+      return;
+    }
+    var raw = comps[key] || 0;
+    var weight = (wVal != null) ? wVal : ((w[key] != null) ? w[key] : (WDEF[key] || 0));
+    var weighted = raw * weight;
+    if (key === 'waypoint') weighted += raw * 10; // +TRAINING_WAYPOINT_BONUS
+    if (neg) weighted = -weighted;
+    totalEst += weighted;
+    el.textContent = fmtW(weighted);
+    compVals.push([id, weighted]);
+  };
+  setW('trcProgress', 'progress');
+  setW('trcWaypoint', 'waypoint');
+  setW('trcPrecision', 'precision');
+  setW('trcAltitude', 'altitude', true);
+  setW('trcTime', 'time', true);
+  setW('trcCrash', 'crash', true);
+  setW('trcVz', 'vzStability');
+  setW('trcHeading', 'headingStability');
+  setW('trcPitch', 'pitchStability');
+  setW('trcSpeed', 'speedStability');
+  setW('trcSlip', 'slipStability');
+  // «Крен»: один и тот же штраф, что в симуляции — bankStability ?? rollStability
+  // (agent-training.html пишет «Крен» в rollStability).
+  setW('trcBank', 'bankStability', false, w.bankStability ?? w.rollStability ?? 0);
+  setW('trcStall', 'stallMargin');
+  setW('trcOvertake', 'overtake');
+  setW('trcAltImpr', 'altImpr');
+  setW('trcHdgImpr', 'hdgImpr');
+  setW('trcVzImpr', 'vzImpr');
+  setW('trcPitchImpr', 'pitchImpr');
+  setW('trcAltPredict', 'altPredict', true);
+  setW('trcFinalApproach', 'finalApproach');
+  var terminalVal = comps ? (comps.terminal || 0) : 0;
+  totalEst += terminalVal;
+  var elTerminal = document.getElementById('trcTerminal'); if (elTerminal) elTerminal.textContent = fmtW(terminalVal);
+  compVals.push(['trcTerminal', terminalVal]);
+  var elTotal = document.getElementById('trcTotal'); if (elTotal) elTotal.textContent = fmtW(totalEst);
+
+  // Выделение: максимум — красный, минимум — зелёный, результат — жёлтый
+  var maxVal = -Infinity, minVal = Infinity, maxIdx = -1, minIdx = -1;
+  for (var ci = 0; ci < compVals.length; ci++) {
+    var cv = compVals[ci][1];
+    if (cv > maxVal) { maxVal = cv; maxIdx = ci; }
+    if (cv < minVal) { minVal = cv; minIdx = ci; }
+  }
+  for (var cj = 0; cj < compVals.length; cj++) {
+    var cel = document.getElementById(compVals[cj][0]);
+    if (!cel) continue;
+    var ccolor = cj === maxIdx ? '#ff5b5b' : (cj === minIdx ? '#4ecb71' : '');
+    cel.style.color = ccolor;
+    var clabel = cel.parentNode ? cel.parentNode.querySelector('span') : null;
+    if (clabel) clabel.style.color = ccolor;
+  }
+  if (elTotal) elTotal.style.color = '#e8a830';
+  var totalLabel = elTotal && elTotal.parentNode ? elTotal.parentNode.querySelector('span') : null;
+  if (totalLabel) totalLabel.style.color = '#e8a830';
+}
+
+function formatMetric(v) { return Number.isFinite(Number(v)) ? Number(v).toFixed(3) : '-'; }
+function formatPercent(v) { return Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) + '%' : '-'; }
+
+// ═══════════════════════════════════════════════════════════════
+// FACULTY
+// ═══════════════════════════════════════════════════════════════
+var facultySelectedCls = null;
+
+function getClassCompletion(clsId) {
+  var cls = getClsById(clsId);
+  if (!cls) return { done:0, total:5 };
+  var branch = cls.mode === 'split' ? (activeBranch === 'all' ? 'drone' : activeBranch) : 'joint';
+  var count = 0;
+  for (var i = 0; i < 5; i++) {
+    var key = lessonKey(clsId, branch, i);
+    var lesson = getLessonData(key);
+    if (lesson && lesson.status && lesson.status.indexOf('заверш') !== -1) count++;
+  }
+  // Also check the other branch for split classes
+  if (cls.mode === 'split') {
+    var otherBranch = branch === 'drone' ? 'anti' : 'drone';
+    for (var i = 0; i < 5; i++) {
+      var key = lessonKey(clsId, otherBranch, i);
+      var lesson = getLessonData(key);
+      if (lesson && lesson.status && lesson.status.indexOf('заверш') !== -1) count++;
+    }
+  }
+  return { done: count, total: cls.mode === 'split' ? 10 : 5 };
+}
+
+function getTotalFacultyProgress() {
+  var totalAll = 0, doneAll = 0;
+  CLS_DATA.forEach(function(cls) {
+    var comp = getClassCompletion(cls.id);
+    totalAll += comp.total;
+    doneAll += comp.done;
+  });
+  return { done: doneAll, total: totalAll };
+}
+
+function renderFacultyView() {
+  var canvas = document.getElementById('lessonCanvas');
+  if (!canvas) return;
+  var prog = getTotalFacultyProgress();
+  var pct = prog.total > 0 ? Math.round(prog.done / prog.total * 100) : 0;
+
+  var html = '<div class="faculty-wrap">';
+  html += '<div class="faculty-prog"><div class="prog-bar"><div class="prog-fill" style="width:' + pct + '%"></div></div>' +
+    '<div class="faculty-prog-text">' + pct + '% · <span style="color:#4ecb71">' + prog.done + '</span> из <span style="color:#aaa">' + prog.total + '</span> уроков завершено</div></div>';
+
+  html += '<div class="faculty-grid">';
+  CLS_DATA.forEach(function(cls) {
+    var comp = getClassCompletion(cls.id);
+    var isSelected = facultySelectedCls && facultySelectedCls.id === cls.id;
+    var isCompleted = comp.done === comp.total;
+    var clsName = 'faculty-card' + (isSelected ? ' selected' : '') + (isCompleted ? ' completed' : '');
+    var barColor = isCompleted ? '#5ba3e8' : cls.color;
+    var pctClass = comp.total > 0 ? Math.round(comp.done / comp.total * 100) : 0;
+    var colorStyle = isSelected ? 'border-color:' + cls.color : '';
+    html += '<div class="' + clsName + '" data-cls-id="' + cls.id + '" style="' + colorStyle + '">' +
+      '<div class="fc-label" style="color:' + cls.color + '">' + classLabel(cls.id, activeBranch === 'all' ? 'drone' : activeBranch, true) + '</div>' +
+      '<div class="fc-name">' + cls.label + '</div>' +
+      '<div class="fc-bar"><span class="fc-bar-fill" style="width:' + pctClass + '%;background:' + barColor + '"></span></div>' +
+      '<div class="fc-info"><span class="done">' + comp.done + '</span>/' + comp.total + '</div>' +
+      '<button class="fc-btn" data-cls-id="' + cls.id + '"' + (activeTrainingKey ? ' disabled' : '') + '>▶ Запуск</button>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  // Show selected class lessons inline
+  if (facultySelectedCls) {
+    var cls = facultySelectedCls;
+    var branch = cls.mode === 'split' ? (activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti') : 'joint';
+    var titles = cls.mode === 'split' && branch === 'anti' ? cls.antiTitles : cls.titles;
+    html += '<div class="faculty-class-lessons"><div class="faculty-class-header">' +
+      '<h3 style="color:' + cls.color + '">' + classLabel(cls.id, branch, true) + ' · ' + cls.label + '</h3>' +
+      '<span style="font:500 10px/1.3 Rajdhani,sans-serif;color:#666">ветка: ' + branch + '</span></div>' +
+      '<div class="ls-row">';
+    for (var i = 0; i < 5; i++) {
+      var key = lessonKey(cls.id, branch, i);
+      var lesson = getLessonData(key) || { title: titles[i], status: 'готов к запуску', metrics: {} };
+      var isSelected = selectedKey === key;
+      var isTraining = activeTrainingKey === key;
+      var isCompleted = lesson.status && lesson.status.indexOf('заверш') !== -1;
+      var cn = 'ls-node' + (isSelected ? ' selected' : '') + (isTraining ? ' training' : '') + (isCompleted ? ' completed' : '');
+      var totalEpsL = getLessonDisplayTargetEpisodes(lesson, key);
+      var doneEpsL = getLessonDoneEpisodes(lesson);
+      var pctL = isCompleted ? 100 : Math.min(100, Math.round(doneEpsL / totalEpsL * 100));
+      var barC = isCompleted ? '#5ba3e8' : isTraining ? '#e8a830' : '#555';
+      var r = lesson.metrics && lesson.metrics.reward;
+      var d = lesson.metrics && lesson.metrics.delta;
+      html += '<div class="' + cn + '" data-key="' + key + '">' +
+        '<div class="ls-num">УРОК ' + (i + 1) + '</div>' +
+        '<div class="ls-title">' + lesson.title + '</div>' +
+        '<div class="ls-bar"><span class="ls-bar-fill" style="width:' + pctL + '%"></span><span class="ls-bar-text">' + doneEpsL + '/' + totalEpsL + '</span></div>' +
+        '<div class="ls-status">' + (lesson.status || '') + '</div>' +
+        (lesson.metrics && lesson.metrics._remaining ? '<div class="ls-remain">осталось ~' + lesson.metrics._remaining + 'с</div>' : '') +
+        '<div class="ls-metrics">' +
+        (r != null ? '<span class="good">R ' + Number(r).toFixed(2) + '</span>' : '') +
+        (d != null ? '<span>Δ ' + Number(d).toFixed(2) + '</span>' : '') +
+        (lesson.latest ? '<span class="warn"> ✓ cp</span>' : '') +
+        '</div></div>';
+      if (i < 4) {
+        var prevKey = lessonKey(cls.id, branch, i);
+        var prevData = getLessonData(prevKey);
+        var ready = prevData && prevData.status && prevData.status.indexOf('заверш') !== -1;
+        html += '<div class="ls-arrow' + (ready ? ' ready' : '') + '"></div>';
+      }
+    }
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  canvas.innerHTML = html;
+
+  // Bind card clicks
+  canvas.querySelectorAll('.faculty-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('.fc-btn')) return;
+      var clsId = Number(card.dataset.clsId);
+      var cls = getClsById(clsId);
+      if (!cls) return;
+      facultySelectedCls = cls;
+      selectedKey = null;
+      renderFacultyView();
+      clearInspector();
+    });
+  });
+
+  // Bind launch buttons
+  canvas.querySelectorAll('.fc-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var clsId = Number(btn.dataset.clsId);
+      if (activeTrainingKey) return;
+      selectClassForFaculty(clsId);
+    });
+  });
+
+  // Bind lesson nodes
+  canvas.querySelectorAll('.faculty-class-lessons .ls-node').forEach(function(node) {
+    node.addEventListener('click', function() {
+      selectedKey = node.dataset.key;
+      showToast('выбран урок факультета: ' + selectedKey);
+      renderFacultyView();
+      populateInspector(selectedKey);
+    });
+  });
+
+  renderBannerSchema();
+  updateProgress();
+}
+
+function selectClassForFaculty(clsId) {
+  var cls = getClsById(clsId);
+  if (!cls) return;
+  facultySelectedCls = cls;
+  var branch = cls.mode === 'split' ? (activeBranch === 'all' || activeBranch === 'drone' ? 'drone' : 'anti') : 'joint';
+
+  // Build chain: collect all incomplete lessons + their prerequisites
+  var fullChain = [];
+  var visited = {};
+  function addWithPrereqs(key) {
+    if (!key || visited[key]) return;
+    visited[key] = true;
+    var parentKey = getParentLessonKey(key);
+    if (parentKey) addWithPrereqs(parentKey);
+    var lesson = getLessonData(key);
+    if (lesson && lesson.status && lesson.status.indexOf('заверш') !== -1) return;
+    var canResume = lesson && (lesson.best || lesson.latest);
+    fullChain.push({ key: key, resume: !!canResume });
+  }
+  for (var i = 0; i < 5; i++) {
+    var key = lessonKey(cls.id, branch, i);
+    addWithPrereqs(key);
+  }
+  if (fullChain.length === 0) return;
+
+  trainingChain = fullChain;
+  chainIndex = 0;
+  renderFacultyView();
+  clearInspector();
+  runNextInChain();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAINING API
+// ═══════════════════════════════════════════════════════════════
+function getParentLessonKey(key) {
+  var p = parseKey(key);
+  if (!p) return null;
+  if (p.idx > 0) return lessonKey(p.clsId, p.branch, p.idx - 1);
+  if (p.clsId > 1) {
+    var prevCls = getClsById(p.clsId - 1);
+    if (!prevCls) return null;
+    var prevBranch = prevCls.mode === 'split' ? p.branch : 'joint';
+    return lessonKey(p.clsId - 1, prevBranch, 4);
+  }
+  return null;
+}
+
+function getParentInfo(key) {
+  var parentKey = getParentLessonKey(key);
+  if (!parentKey) return [];
+  var parentData = getLessonData(parentKey);
+  if (!parentData || !parentData.best) return [];
+  var p = parseKey(parentKey);
+  return [{ nodeKey: parentKey, role: p.branch, best: parentData.best, latest: parentData.latest || null }];
+}
+
+async function startLessonTraining(resume) {
+  showToast('запуск обучения (resume=' + resume + ') режим=' + trainingMode);
+  if (activeTrainingKey) { showToast('  заблокировано: activeTrainingKey=' + activeTrainingKey); return; }
+  var key = selectedKey;
+  if (!key) { showToast('  заблокировано: урок не выбран'); return; }
+  var lesson = getLessonData(key);
+  if (!lesson) { showToast('  заблокировано: нет данных урока key=' + key); return; }
+
+  // prerequisite check — нельзя перепрыгнуть через незавершённый урок
+  var parentKey = getParentLessonKey(key);
+  if (parentKey) {
+    var parentData = getLessonData(parentKey);
+    if (!parentData || !parentData.best) {
+      showToast('  blocked: предшествующий урок не завершён');
+      return;
+    }
+  }
+
+  if (trainingMode === 'manual') {
+    trainingChain = getManualChain(key, resume);
+  } else {
+    trainingChain = getAutoChain(key, resume);
+  }
+  chainIndex = 0;
+  if (!resume) convergeRetries = {};  // свежий старт — сброс счётчика доп-сессий
+  showToast('  цепочка: ' + trainingChain.length + ' ур., запуск runNextInChain');
+  runNextInChain();
+}
+
+function getManualChain(targetKey, resume) {
+  return [{ key: targetKey, resume: resume }];
+}
+
+function getAutoChain(targetKey, resume) {
+  var chain = [];
+  var p = parseKey(targetKey);
+  if (!p) return [{ key: targetKey, resume: resume }];
+
+  // backward: uncompleted ancestors
+  var visited = {};
+  function visit(key) {
+    if (!key || visited[key]) return;
+    visited[key] = true;
+    var parentKey = getParentLessonKey(key);
+    if (parentKey) visit(parentKey);
+    var lesson = getLessonData(key);
+    if (lesson && key !== targetKey && !lesson.best) {
+      chain.push({ key: key, resume: false });
+    }
+  }
+  visit(targetKey);
+  chain.push({ key: targetKey, resume: resume });
+
+  // forward: lessons after target up to Урок-5 (index 4)
+  for (var i = p.idx + 1; i <= 4; i++) {
+    chain.push({ key: lessonKey(p.clsId, p.branch, i), resume: false });
+  }
+
+  // cross-class: all 5 lessons of classes up to Класс-5
+  var maxClsId = Math.min(5, CLS_DATA[CLS_DATA.length - 1].id);
+  for (var c = p.clsId + 1; c <= maxClsId; c++) {
+    var nextCls = getClsById(c);
+    if (!nextCls) continue;
+    var nextBranch = nextCls.mode === 'split' ? p.branch : 'joint';
+    for (var i = 0; i <= 4; i++) {
+      chain.push({ key: lessonKey(c, nextBranch, i), resume: false });
+    }
+  }
+  return chain;
+}
+
+async function runNextInChain() {
+  if (chainIndex >= trainingChain.length) {
+    showToast('  цепочка завершена');
+    trainingChain = []; chainIndex = 0;
+    if (selectedKey) populateInspector(selectedKey);
+    renderCanvas(); saveState();
+    return;
+  }
+  var item = trainingChain[chainIndex];
+  chainIndex++;
+  var key = item.key, resume = item.resume;
+  if (!resume) delete convergeRetries[key];
+  var lesson = getLessonData(key);
+  if (!lesson) {
+    lesson = { status: 'готов к запуску', metrics: {} };
+    lessonData[key] = lesson;
+    showToast('  инициализация урока ' + key);
+  }
+
+  // skip already-completed lessons in auto chain (forward section)
+  if (trainingMode === 'auto' && lesson.best && chainIndex <= trainingChain.length) {
+    showToast('  пропуск (уже завершён) ' + key);
+    runNextInChain(); return;
+  }
+
+  // auto-follow selectedKey so visual highlight tracks the chain
+  if (selectedKey !== key && trainingMode === 'auto') {
+    selectedKey = key;
+  }
+
+  // switch class tab if needed (cross-class chain)
+  var p = parseKey(key);
+  if (!p) { p = { clsId: 0, branch: 'drone', idx: 0 }; }
+  if (currentTab !== p.clsId - 1 || p.branch !== activeBranch) {
+    currentTab = p.clsId - 1;
+    activeBranch = p.branch;
+    renderTabs();
+  }
+  var chainLabel = trainingChain.length > 1 ? ' (' + chainIndex + '/' + trainingChain.length + ')' : '';
+  lesson.status = resume ? 'продолжение...' + chainLabel : 'запуск RL' + chainLabel;
+  showToast('  статус=' + lesson.status + ' key=' + key);
+  lesson.metrics = lesson.metrics || {};
+  lesson.metrics._startTime = Date.now();
+  trainingStartTime = Date.now();
+  activeTrainingKey = key;
+  var s = document.getElementById('btnStartNode'); if (s) { s.textContent = 'ОБУЧЕНИЕ'; s.disabled = true; s.classList.add('training-active'); }
+  if (selectedKey === key) populateInspector(key);
+  // Загружаем конфиг с сервера (Эпизоды: N из .txt), чтобы lesson.train.episodes
+  // обновился. Если сервер недоступен — работаем с тем, что есть в localStorage.
+  try { await loadLessonConfig(key); } catch (_) {}
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas(); saveState();
+
+  try {
+    var itemEpisodes = (item && item.episodes != null) ? item.episodes : getLessonRunEpisodes(lesson, key, resume);
+    var trainConfig = { ...(lesson.train || {}), episodes: itemEpisodes };
+    var body = {
+      node: { key: key, role: p.branch, classId: p.clsId, lessonIdx: p.idx, ppo: lesson.ppo, train: trainConfig, weights: lesson.weights, scenario: lesson.scenario || {} },
+      resume: resume,
+      inputFrom: getParentInfo(key),
+      description: lesson.desc || '',
+    };
+    var response = await fetch(TRAINING_API + '/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var job = await response.json();
+    activeJobId = job.id;
+    applyJobUpdate(key, job);
+    syncTrainingState(lesson);
+    trainingTimer = setInterval(function() { pollTrainingJob(key); }, 500);
+  } catch (e) {
+    showToast('  ошибка запроса: ' + e.message);
+    lesson.status = 'сервер недоступен';
+    activeTrainingKey = null; activeJobId = null;
+    trainingStartTime = 0; trainingJobProgress = 0; updateTrainingTimerDisplay();
+    trainingChain = []; chainIndex = 0;
+    if (selectedKey === key) populateInspector(key);
+    renderCanvas(); saveState();
+  }
+}
+
+async function stopLessonTraining() {
+  var key = activeTrainingKey;
+  trainingChain = []; chainIndex = 0;
+  if (!key) return;
+  if (activeJobId) {
+    try { await fetch(TRAINING_API + '/jobs/' + activeJobId + '/stop', { method: 'POST' }); } catch (_) {}
+  }
+  var lesson = getLessonData(key);
+  if (lesson && !lesson.status.includes('заверш')) lesson.status = 'остановлено';
+  stopTrainingTimer();
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas(); saveState();
+}
+
+function autoTuneWeightsAfterFail(key) {
+  var lesson = getLessonData(key);
+  if (!lesson) return false;
+  var idx = lesson.weightProfileIdx || 0;
+  if (idx >= WEIGHT_PROFILES.length - 1) {
+    showToast('  вес: все профили исчерпаны (' + WEIGHT_PROFILES.length + ')');
+    return false;
+  }
+  idx++;
+  lesson.weightProfileIdx = idx;
+  lesson.weights = { ...WEIGHT_PROFILES[idx] };
+  lesson.completed = 0;
+  lesson.totalEpisodes = 0;
+  lesson.resumeFrom = 0;
+  lesson.latest = null;
+  lesson.best = null;
+  lesson.chart = { rewards: [], deltas: [], losses: [] };
+  lesson.metrics = {};
+  delete lesson.selEp;
+  lesson.status = 'готов к запуску';
+  delete lesson.convergeEpisodes;
+  setLessonData(key, lesson);
+  showToast('  вес: профиль ' + (idx + 1) + '/' + WEIGHT_PROFILES.length + ' (wp=' + lesson.weights.waypoint.toFixed(1) + ' cr=' + lesson.weights.crash.toFixed(0) + ')');
+  trainingChain.splice(chainIndex, 0, { key: key, resume: false });
+  return true;
+}
+
+function stopTrainingTimer(wasCompleted) {
+  if (trainingTimer) clearInterval(trainingTimer);
+  trainingTimer = null;
+  var completedKey = activeTrainingKey;
+  activeTrainingKey = null;
+  activeJobId = null;
+  trainingStartTime = 0; trainingJobProgress = 0;
+  updateTrainingTimerDisplay();
+  var s = document.getElementById('btnStartNode'); if (s) { s.textContent = 'Запуск RL'; s.disabled = false; s.classList.remove('training-active'); }
+
+  // Сразу снять золотую рамку, чтобы не висела после pollTrainingJob
+  syncTrainingState(null);
+  renderCanvas(); saveState();
+  // Обновить инспектор после остановки — метрики, график, состав награды
+  if (completedKey === selectedKey) populateInspector(completedKey);
+
+  // Manual extra training: если заданы доп эпизоды и сессии — добавить в цепь
+  if (wasCompleted && completedKey) {
+    var lesson = getLessonData(completedKey);
+    if (lesson) {
+      var extraEp = Number(lesson.train?.extraEpisodes) || 0;
+      var extraSe = Number(lesson.train?.extraSessions) || 0;
+      var retries = (convergeRetries[completedKey] || 0);
+      if (extraEp > 0 && extraSe > 0 && retries < extraSe) {
+        convergeRetries[completedKey] = retries + 1;
+        showToast('доп-обучение ' + (retries + 1) + '/' + extraSe + ' x' + extraEp + ' эп.');
+        trainingChain.splice(chainIndex, 0, { key: completedKey, resume: true, episodes: extraEp });
+        if (completedKey === selectedKey) populateInspector(completedKey);
+      } else if (extraEp > 0 && extraSe > 0 && retries >= extraSe) {
+        delete convergeRetries[completedKey];
+        showToast('доп-обучение завершено: ' + (extraEp * extraSe) + ' эп.');
+      }
+    }
+  }
+
+  if (chainIndex < trainingChain.length) {
+    // Дать время на синхронизацию данных урока перед переходом к следующему в цепи
+    // (иначе может быть проскакивание уроков из-за race condition)
+    setTimeout(runNextInChain, 300);
+  } else {
+    onChainComplete();
+  }
+}
+
+function onChainComplete() {
+  trainingChain = []; chainIndex = 0;
+  if (selectedKey) populateInspector(selectedKey);
+  renderCanvas();
+  saveState();
+}
+
+async function pollTrainingJob(key) {
+  if (!activeJobId) return;
+  var myJobId = activeJobId;
+  try {
+    var response = await fetch(TRAINING_API + '/jobs/' + myJobId);
+    if (response.status === 404) {
+      if (activeJobId !== myJobId) return;
+      showToast('  сервер перезапущен — старый job не найден');
+      activeJobId = null;
+      activeTrainingKey = null;
+      trainingStartTime = 0; trainingJobProgress = 0;
+      updateTrainingTimerDisplay();
+      syncTrainingState(null);
+      clearInterval(trainingTimer);
+      trainingTimer = null;
+      var lostLesson = getLessonData(key);
+      if (lostLesson) {
+        lostLesson.status = 'готов к запуску';
+        populateInspector(key);
+        renderCanvas();
+        saveState();
+      }
+      updateTrainingStatusBar();
+      return;
+    }
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var job = await response.json();
+    if (activeJobId !== myJobId) return;
+    applyJobUpdate(key, job);
+    trainingJobProgress = job.progress || 0;
+    updateTrainingTimerDisplay();
+    if (job.status === 'completed' || job.status === 'stopped') stopTrainingTimer(job.status === 'completed');
+  } catch (error) {
+    if (activeJobId !== myJobId) return;
+    if (error.message.startsWith('HTTP ')) {
+      var lesson = getLessonData(key);
+      if (lesson) { lesson.status = 'ошибка сервера'; populateInspector(key); renderCanvas(); saveState(); }
+    }
+  }
+}
+
+function syncPreviewNode(key) {
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  if (!lesson.latest && !lesson.best) return;
+  var p = parseKey(key);
+  if (!p) return;
+  var payload = {
+    version: 1, nodeKey: key, title: lesson.title || 'Урок ' + key,
+    classId: p.clsId, role: p.branch,
+    policyMode: 'checkpoint',
+    checkpointType: lesson.best ? 'best' : 'latest',
+    latest: lesson.latest || null, best: lesson.best || null,
+    lastRoute: lesson.lastRoute || null,
+    episodes: getLessonDisplayTargetEpisodes(lesson, key),
+  };
+  try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(payload)); } catch (_) {}
+}
+
+function applyJobUpdate(key, job) {
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  var pct = Math.round((job.progress || 0) * 100);
+  var resumeFrom = job.resumeFrom || 0;
+  lesson.status = job.status === 'completed' ? 'завершено (' + (job.totalEpisodes || job.completed) + ' эп. всего)'
+    : job.status === 'stopped' ? 'остановлено (' + (job.totalEpisodes || job.completed) + ' эп. всего)'
+    : resumeFrom > 0 ? 'продолжение с эп. ' + resumeFrom + ' — ' + pct + '%'
+    : 'обучается ' + pct + '%';
+  lesson.metrics = {
+    reward: job.reward, bestReward: job.bestReward, delta: job.delta,
+    baselineReward: job.baselineReward, loss: job.loss,
+    emaReward: job.emaReward, emaDelta: job.emaDelta, bestScore: job.bestScore, progress: job.progress,
+    eval: job.eval || null, evalArrivedRate: job.evalArrivedRate, evalMeanReward: job.evalMeanReward,
+    rewardComponentsTotal: job.rewardComponentsTotal ?? null,
+  };
+  lesson.chart = lesson.chart || { rewards: [], deltas: [], losses: [] };
+  // Не обнуляем график при свежем запуске — новый массив короче старого
+  if (Array.isArray(job.rewards) && job.rewards.length >= (lesson.chart.rewards?.length || 0))
+    lesson.chart.rewards = job.rewards;
+  if (Array.isArray(job.deltas) && job.deltas.length >= (lesson.chart.deltas?.length || 0))
+    lesson.chart.deltas = job.deltas;
+  if (Array.isArray(job.losses) && job.losses.length >= (lesson.chart.losses?.length || 0))
+    lesson.chart.losses = job.losses;
+  if (Array.isArray(job.comps) && job.comps.length >= (lesson.chart.comps?.length || 0))
+    lesson.chart.comps = job.comps;
+  if (Array.isArray(job.evals) && job.evals.length >= (lesson.chart.evals?.length || 0))
+    lesson.chart.evals = job.evals;
+  lesson.completed = job.completed;
+  lesson.resumeFrom = job.resumeFrom || 0;
+  lesson.totalEpisodes = Math.max(lesson.totalEpisodes || 0, job.totalEpisodes || job.completed);
+  lesson.latest = job.artifacts && job.artifacts.latest ? job.artifacts.latest : (lesson.latest || null);
+  lesson.best = job.artifacts && job.artifacts.best ? job.artifacts.best : (lesson.best || null);
+  lesson.lastRoute = job.lastRoute || lesson.lastRoute || null;
+  lesson.updatedAt = job.updatedAt || new Date().toISOString();
+  // Синхронизируем текущий вес имитации из job'а
+  if (job.imitationWeight != null) {
+    lesson.ppo = lesson.ppo || {};
+    lesson.ppo.imitationWeight = job.imitationWeight;
+  }
+  setLessonData(key, lesson);
+  syncTrainingState(lesson);
+  // Без полного populateInspector — только график и метрики (без дёргания вёрстки)
+  if (selectedKey === key) {
+    var m = lesson.metrics || {};
+    var setTT = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+    var rwEl = document.getElementById('nodeReward');
+    if (rwEl) { rwEl.textContent = formatMetric(m.reward); rwEl.style.color = m.reward != null && m.reward < 20 ? '#ff4444' : '#fff'; }
+    setTT('nodeBestReward', formatMetric(m.bestReward));
+    setTT('nodeEmaReward', m.emaReward != null ? formatMetric(m.emaReward) : '-');
+    setTT('nodeDelta', formatMetric(m.delta));
+    setTT('nodeProgress', formatPercent(m.progress));
+    var lossEl2 = document.getElementById('nodeLoss');
+    if (lossEl2) lossEl2.textContent = m.loss != null ? Number(m.loss).toFixed(4) : '-';
+    var imEl2 = document.getElementById('nodeImitation');
+    if (imEl2) imEl2.textContent = lesson.ppo?.imitationWeight != null ? Number(lesson.ppo.imitationWeight).toFixed(2) : '-';
+    var chart = lesson.chart || {};
+    renderRewardBars('rewardSpark', chart.rewards, chart.comps, lesson.selEp);
+    setSvgSpark('lossSpark', chart.losses);
+    renderEvalSpark('evalSpark', chart.evals, (lesson.resumeFrom ?? 0) + (lesson.completed ?? 0));
+    renderRewardComps(lesson);
+  }
+  renderCanvas();
+  saveState();
+  syncPreviewNode(key);
+}
+
+function applyLessonConfig(key, config) {
+  if (!config || !config.weights) return;
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  lesson.weights = { ...(lesson.weights || {}), ...config.weights };
+  if (config.params) {
+    lesson.ppo = lesson.ppo || {};
+    lesson.train = lesson.train || {};
+    if (config.params.lr != null) lesson.ppo.lr = config.params.lr;
+    if (config.params.imitationWeight != null) lesson.ppo.imitationWeight = config.params.imitationWeight;
+    if (config.params.entropyCoef != null) lesson.ppo.entropyCoef = config.params.entropyCoef;
+    if (config.params.targetKL != null) lesson.ppo.targetKL = config.params.targetKL;
+    if (config.params.autoWeights != null) lesson.ppo.autoWeights = config.params.autoWeights;
+    if (config.params.episodes != null) lesson.train.episodes = config.params.episodes;
+  }
+  if (config.scenario) lesson.scenario = { ...(lesson.scenario || {}), ...config.scenario };
+  setLessonData(key, lesson);
+  saveState();
+  if (selectedKey === key) {
+    // Sync UI sliders
+    var syncSlider = function(weightKey) {
+      var inp = document.querySelector('[data-weight="' + weightKey + '"]');
+      if (inp && config.weights[weightKey] != null) {
+        inp.value = String(config.weights[weightKey]);
+        var spans = inp.parentElement.querySelectorAll('span');
+        if (spans.length > 1) spans[spans.length - 1].textContent = config.weights[weightKey];
+      }
+    };
+    Object.keys(config.weights).forEach(syncSlider);
+    // Sync PPO inputs
+    var setInp = function(id, val) { var el = document.getElementById(id); if (el && val != null) el.value = String(val); };
+    setInp('nodeLr', config.params?.lr);
+    setInp('nodeImitationWeight', config.params?.imitationWeight);
+    setInp('nodeEntropyCoef', config.params?.entropyCoef);
+    setInp('nodeTargetKL', config.params?.targetKL);
+    setInp('nodeEpisodesInput', config.params?.episodes);
+  }
+}
+
+async function loadLessonConfig(key) {
+  try {
+    var r = await fetch(TRAINING_API + '/lesson-config?key=' + encodeURIComponent(key));
+    if (!r.ok) return;
+    var config = await r.json();
+    applyLessonConfig(key, config);
+  } catch (_) {}
+}
+
+async function resetLesson(key) {
+  key = key || selectedKey;
+  if (!key || activeTrainingKey === key) return;
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  try {
+    await fetch(TRAINING_API + '/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: key, role: key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone' }),
+    });
+  } catch (_) {}
+  lesson.metrics = {}; lesson.completed = 0; lesson.totalEpisodes = 0;
+  lesson.resumeFrom = 0; lesson.latest = null; lesson.best = null;
+  delete convergeRetries[key];
+  delete lesson.convergeEpisodes;
+  delete lesson.weightProfileIdx;
+  delete lesson.selEp;
+  lesson.status = 'готов к запуску';
+  lesson.chart = { rewards: [], deltas: [], losses: [] };
+  setLessonData(key, lesson);
+  // Очищаем живой кэш состава награды от Split-view
+  try { localStorage.removeItem('polygon3d.liveBreakdown.v1'); } catch (_) {}
+  if (selectedKey === key) populateInspector(key);
+  renderCanvas(); saveState();
+}
+
+function getPreviewCheckpoint(lesson) {
+  // Выбрать лучший доступный чекпоинт: best > latest
+  if (lesson.best) return { path: lesson.best, type: 'best' };
+  if (lesson.latest) return { path: lesson.latest, type: 'latest' };
+  return { path: null, type: null };
+}
+
+function openLessonPreview() {
+  var key = selectedKey;
+  if (!key) return;
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  var cp = getPreviewCheckpoint(lesson);
+  if (!cp.path) { showToast('Нет чекпоинта — показ пустого полигона'); }
+  var p = parseKey(key);
+  var payload = {
+    version: 1, nodeKey: key, title: lesson.title || 'Урок ' + key,
+    classId: p.clsId, role: p.branch,
+    policyMode: 'checkpoint',
+    checkpointType: cp.type, latest: lesson.latest || null, best: lesson.best || null,
+    lastRoute: lesson.lastRoute || null,
+    episodes: getLessonDisplayTargetEpisodes(lesson, selectedKey),
+  };
+  try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(payload)); } catch (_) {}
+  window.open('Split-view.html?previewNode=1', 'polygon3d-preview-' + Date.now());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEMPLATES
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+console.log('training.html INIT starting');
+loadState();
+
+// Init lessonData for all classes
+CLS_DATA.forEach(function(cls) {
+  var branches = cls.mode === 'split' ? ['drone','anti'] : ['joint'];
+  branches.forEach(function(b) {
+    var titles = cls.mode === 'split' && b === 'anti' ? cls.antiTitles : cls.titles;
+    for (var i = 0; i < 5; i++) {
+      var key = lessonKey(cls.id, b, i);
+      if (!getLessonData(key)) {
+        // Per-lesson reward weights
+        var w = i === 0
+          ? { progress:0.5, waypoint:5, precision:0, altitude:4, time:0.3, crash:0, vzStability:15, headingStability:6, pitchStability:15, rollStability:5, slipStability:2, speedStability:5, bankStability:0, stallMargin:1.0, altImpr:3, hdgImpr:3, vzImpr:5, pitchImpr:5, altPredict:5 }
+          : { progress:0.7, waypoint:7, precision:0, altitude:4, time:0.3, crash:0, vzStability:5, headingStability:6, pitchStability:5, rollStability:5, slipStability:2, speedStability:5, bankStability:0, stallMargin:1.0, altImpr:5, hdgImpr:3, vzImpr:10, pitchImpr:5, altPredict:8 };
+        setLessonData(key, { title: titles[i], ppo: { lr: 0.0001, imitationWeight: 0.2, entropyCoef: 0.010, targetKL: 0.02 }, train: { episodes: 200, extraEpisodes: 0, extraSessions: 0 }, weights: w, metrics: {}, status: 'готов к запуску', completed: 0, resumeFrom: 0, totalEpisodes: 0, latest: null, best: null, chart: { rewards: [], deltas: [], losses: [] } });
+      } else {
+        var existing = getLessonData(key);
+        if (!existing.title) existing.title = titles[i];
+        setLessonData(key, existing);
+      }
+    }
+  });
+});
+
+// Урок 1 (прямая на постоянной высоте) — крен и скольжение тут не нужны вообще
+// (в отличие от уроков с разворотом), поэтому включаем штраф по умолчанию, если
+// пользователь ещё не настроил веса вручную (оба всё ещё на дефолтном 0).
+(function enableSlipBankPenaltyForLesson1() {
+  var key = lessonKey(1, 'drone', 0);
+  var lesson = getLessonData(key);
+  if (!lesson) return;
+  if (!lesson.weights) lesson.weights = {};
+  if ((lesson.weights.slipStability ?? 0) === 0 && (lesson.weights.bankStability ?? 0) === 0) {
+    lesson.weights.slipStability = 1.5;
+    lesson.weights.bankStability = 1.0;
+    setLessonData(key, lesson);
+  }
+})();
+
+// Синхронизация с чекпоинтами на диске — источник правды один: data/checkpoints/.
+// Нужно, чтобы результаты обучения, запущенного напрямую через API (в обход этой
+// страницы, как при диагностике/массовых прогонах), сразу отражались в панели, а
+// не требовали ручного клика в UI для каждого урока.
+async function syncCheckpointsFromDisk() {
+  try {
+    const r = await fetch(TRAINING_API + '/checkpoints');
+    if (!r.ok) return;
+    const list = await r.json();
+    let changed = false;
+    for (const cp of list) {
+      const lesson = getLessonData(cp.nodeKey);
+      if (!lesson) continue;               // чекпоинт для узла вне текущей программы уроков
+      if (activeTrainingKey === cp.nodeKey) continue;  // не мешать активному job'у
+      if (!cp.hasBest && !cp.hasLatest) continue;
+      const isNewer = !lesson.updatedAt || (cp.updatedAt && cp.updatedAt > lesson.updatedAt);
+      if (!isNewer && lesson.best) continue;
+      lesson.best = cp.hasBest ? cp.best : lesson.best;
+      lesson.latest = cp.hasLatest ? cp.latest : lesson.latest;
+      lesson.updatedAt = cp.updatedAt || lesson.updatedAt;
+      lesson.lastRoute = cp.lastRoute || lesson.lastRoute;
+      if (Array.isArray(cp.comps)) {
+        lesson.chart = lesson.chart || {};
+        lesson.chart.comps = cp.comps;
+      }
+      // Синхронизируем веса наград из артефакта чекпоинта (job.weights),
+      // чтобы панель «Состав награды» считала по тем же весам, что Split-view.
+      if (cp.latest || cp.best) {
+        try {
+          var artR = await fetch(TRAINING_API + '/artifact?path=' + encodeURIComponent(cp.latest || cp.best));
+          if (artR.ok) { var art = await artR.json(); if (art.weights) lesson.weights = { ...(lesson.weights || {}), ...art.weights }; }
+        } catch (_) {}
+      }
+      if (cp.summary) {
+        lesson.metrics = Object.assign({}, lesson.metrics, {
+          reward: cp.summary.mean_reward, bestReward: cp.summary.best_reward, loss: cp.summary.mean_loss,
+        });
+      }
+      if (cp.status === 'completed' && (!lesson.status || lesson.status.indexOf('заверш') === -1)) {
+        lesson.status = 'завершено (диск)';
+      }
+      setLessonData(cp.nodeKey, lesson);
+      changed = true;
+    }
+    if (changed) {
+      renderTabs(); renderCanvas(); updateProgress();
+      if (selectedKey) populateInspector(selectedKey);
+      saveState();
+    }
+  } catch (_) { /* training-server недоступен — тихо пропускаем, страница работает офлайн */ }
+}
+
+renderTabs();
+renderCanvas();
+clearInspector();
+populateInspector(selectedKey);
+updateProgress();
+syncCheckpointsFromDisk();
+
+// Branch buttons
+// Render C1-C10 banner
+function renderBannerSchema() {
+  var el = document.getElementById('bannerSchema');
+  if (!el) return;
+  var nCls = CLS_DATA.length;
+  var BW = 1200, BH = 100, cw = 66, ch = 26, gap = 10;
+  var startX = (BW - (nCls * (cw + gap) - gap)) / 2;
+  var pathY = 14;
+  var labels = ['Только цель','Инерция','Обзор','2.5D','Группа','Противник','Адаптив.','ПВО','Рой','Ресурсы','Сценарий'];
+  var svg = '<svg class="schema-svg" viewBox="0 0 ' + BW + ' ' + BH + '" xmlns="http://www.w3.org/2000/svg"><defs>' +
+    '<marker id="bArrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#4ecb71"/></marker>' +
+    '<marker id="bArrowO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#e8a830"/></marker>' +
+    '<marker id="bArrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#5ba3e8"/></marker></defs>' +
+    '<rect x="0" y="0" width="' + BW + '" height="' + BH + '" fill="transparent"/>' +
+    '<rect x="8" y="4" width="' + (BW - 16) + '" height="' + (BH - 8) + '" rx="6" ry="6" fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>' +
+    '<text x="' + (startX - 37) + '" y="' + (pathY - 6 + ch/2 + 4) + '" text-anchor="end" font-size="10" font-weight="600" font-family="Rajdhani,sans-serif" fill="#e8a830">ДРОН</text>' +
+    '<text x="' + (startX - 37) + '" y="' + (pathY + 38 + ch/2 + 4) + '" text-anchor="end" font-size="10" font-weight="600" font-family="Rajdhani,sans-serif" fill="#5ba3e8">АНТИДРОН</text>';
+  var jointShift = 0; // removed because all classes fit without shift
+  for (var i = 0; i < nCls; i++) {
+    var x = startX + i * (cw + gap);
+    var cls = getClsById(i + 1);
+    var comp = cls ? getClassCompletion(cls.id) : { done: 0, total: 5 };
+    var isComplete = comp.done === comp.total;
+    var isActive = currentTab === i;
+    var isFaculty = currentTab >= CLS_DATA.length;
+    if (i < 5) {
+      var dY = pathY - 6, aY = pathY + 38;
+      var dActive = isActive && activeBranch !== 'anti';
+      var aActive = isActive && activeBranch === 'anti';
+      var dComp = getClassCompletion(i + 1);
+      var dFill = isComplete ? '#4ecb71' : (dActive && !isFaculty ? '#e8a830' : 'rgba(232,168,48,0.12)');
+      var dStroke = isComplete ? '#4ecb71' : (dActive && !isFaculty ? '#e8a830' : 'rgba(232,168,48,0.3)');
+      var dW = (dActive && !isFaculty) || isComplete ? 2.5 : 1;
+      var dText = isComplete ? '#fff' : (dActive && !isFaculty ? '#fff' : '#e8a830');
+      var dLabel = classLabel(i + 1, 'drone', false);
+      svg += '<rect x="' + x + '" y="' + dY + '" width="' + cw + '" height="' + ch + '" rx="4" ry="4" fill="' + dFill + '" stroke="' + dStroke + '" stroke-width="' + dW + '"/><text x="' + (x + cw / 2) + '" y="' + (dY + ch / 2 + 4) + '" text-anchor="middle" font-size="10" font-weight="600" font-family="SF Mono,monospace" fill="' + dText + '">' + dLabel + '</text>';
+      var aFill = isComplete ? '#4ecb71' : (aActive && !isFaculty ? '#5ba3e8' : 'rgba(91,163,232,0.12)');
+      var aStroke = isComplete ? '#4ecb71' : (aActive && !isFaculty ? '#5ba3e8' : 'rgba(91,163,232,0.3)');
+      var aW = (aActive && !isFaculty) || isComplete ? 2.5 : 1;
+      var aText = isComplete ? '#fff' : (aActive && !isFaculty ? '#fff' : '#5ba3e8');
+      var aLabel = classLabel(i + 1, 'anti', false);
+      svg += '<rect x="' + x + '" y="' + aY + '" width="' + cw + '" height="' + ch + '" rx="4" ry="4" fill="' + aFill + '" stroke="' + aStroke + '" stroke-width="' + aW + '"/><text x="' + (x + cw / 2) + '" y="' + (aY + ch / 2 + 4) + '" text-anchor="middle" font-size="10" font-weight="600" font-family="SF Mono,monospace" fill="' + aText + '">' + aLabel + '</text>';
+      if (i > 0) {
+        svg += '<line x1="' + (startX + (i-1)*(cw+gap)+cw) + '" y1="' + (dY+ch/2) + '" x2="' + (x-2) + '" y2="' + (dY+ch/2) + '" stroke="#e8a830" stroke-width="1.5" marker-end="url(#bArrowO)"/>';
+        svg += '<line x1="' + (startX + (i-1)*(cw+gap)+cw) + '" y1="' + (aY+ch/2) + '" x2="' + (x-2) + '" y2="' + (aY+ch/2) + '" stroke="#5ba3e8" stroke-width="1.5" marker-end="url(#bArrowB)"/>';
+      }
+    } else {
+      var jFill = isComplete ? '#4ecb71' : (isActive && !isFaculty ? '#4ecb71' : 'rgba(78,203,113,0.15)');
+      var jStroke = isComplete ? '#4ecb71' : (isActive && !isFaculty ? '#4ecb71' : 'rgba(78,203,113,0.3)');
+      var jW = (isActive && !isFaculty) || isComplete ? 2.5 : 1;
+      var jText = isComplete || (isActive && !isFaculty) ? '#fff' : '#4ecb71';
+      svg += '<rect x="' + x + '" y="' + (pathY+10) + '" width="' + cw + '" height="' + ch + '" rx="4" ry="4" fill="' + jFill + '" stroke="' + jStroke + '" stroke-width="' + jW + '"/><text x="' + (x + cw/2) + '" y="' + (pathY+10+ch/2+4) + '" text-anchor="middle" font-size="10" font-weight="600" font-family="SF Mono,monospace" fill="' + jText + '">C' + (i+1) + '</text>';
+      if (i > 5) svg += '<line x1="' + (startX + (i-1)*(cw+gap)+cw) + '" y1="' + (pathY+10+ch/2) + '" x2="' + (x-2) + '" y2="' + (pathY+10+ch/2) + '" stroke="#4ecb71" stroke-width="1.5" marker-end="url(#bArrowG)"/>';
+    }
+    svg += '<text x="' + (x+cw/2) + '" y="' + (pathY+40+ch+6) + '" text-anchor="middle" font-size="6.5" fill="#555" font-family="SF Mono,monospace">' + labels[i] + '</text>';
+  }
+  // Merge arrows (C5 drone/anti → C6)
+  var mx = startX + 5*(cw+gap), me = startX + 4*(cw+gap)+cw;
+  svg += '<line x1="' + me + '" y1="' + (pathY-6+ch/2) + '" x2="' + (mx-gap/2) + '" y2="' + (pathY+10+ch/2) + '" stroke="#e8a830" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bArrowO)"/>';
+  svg += '<line x1="' + me + '" y1="' + (pathY+38+ch/2) + '" x2="' + (mx-gap/2) + '" y2="' + (pathY+10+ch/2) + '" stroke="#5ba3e8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#bArrowB)"/>';
+  svg += '</svg>';
+  el.innerHTML = svg;
+}
+renderBannerSchema();
+
+// Save weight slider changes
+var _weightSaveTimers = {};
+function _saveWeightsToLessonFile(key) {
+  var lesson = getLessonData(key);
+  if (!lesson || !lesson.weights) return;
+  fetch(TRAINING_API + '/lesson-weights', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nodeKey: key, weights: lesson.weights }),
+  }).catch(function() {});
+}
+document.querySelectorAll('#nodeWeights input[data-weight]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    if (!selectedKey) return;
+    var lesson = getLessonData(selectedKey);
+    if (!lesson) return;
+    if (!lesson.weights) lesson.weights = {};
+    lesson.weights[this.dataset.weight] = Number(this.value);
+    if (this.nextElementSibling) this.nextElementSibling.textContent = String(this.value);
+    setLessonData(selectedKey, lesson);
+    saveState();
+    // Пишем изменение в файл урока (.txt) с дебаунсом — файл остаётся источником правды.
+    clearTimeout(_weightSaveTimers[selectedKey]);
+    _weightSaveTimers[selectedKey] = setTimeout(function() { _saveWeightsToLessonFile(selectedKey); }, 500);
+  });
+});
+
+document.getElementById('btnResetWeights')?.addEventListener('click', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  var def = lesson.templateWeights || { progress:0.5, waypoint:1.0, precision:0, altitude:1.0, time:0.01, crash:5.0, vzStability:1.5, headingStability:1.5, pitchStability:1.5, speedStability:3.0, altPredict:0 };
+  lesson.weights = { ...def };
+  setLessonData(selectedKey, lesson);
+  saveState();
+  populateInspector(selectedKey);
+});
+
+document.getElementById('btnApplyWeights')?.addEventListener('click', async function() {
+  var key = selectedKey;
+  if (!key) { showToast('  выберите урок'); return; }
+  var p = parseKey(key);
+  var role = p ? p.branch : (key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone');
+  var btn = this;
+  btn.disabled = true;
+  try {
+    var r = await fetch(TRAINING_API + '/weights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: key, role: role }),
+    });
+    var data = await r.json();
+    if (!r.ok) { showToast('  ' + (data.error || ('HTTP ' + r.status))); return; }
+    // Синхронизировать слайдеры с применёнными весами, чтобы .txt оставался
+    // источником правды и следующий ЗАПУСК RL использовал те же значения.
+    var lesson = getLessonData(key);
+    if (lesson && data.weights) {
+      lesson.weights = { ...(lesson.weights || {}), ...data.weights };
+      setLessonData(key, lesson);
+    }
+    if (selectedKey === key) populateInspector(key);
+    showToast(data.changed && data.changed.length
+      ? '  ✓ применено к обучению: ' + data.changed.join(', ') + ' (со след. эпизода)'
+      : '  ✓ веса уже актуальны для обучения');
+  } catch (e) {
+    showToast('  ошибка: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Подбор весов (тюнер): пишет «ПодборВесов: 1|0» в файл урока и обновляет узел.
+document.getElementById('chkAutoWeights')?.addEventListener('change', async function() {
+  var key = selectedKey;
+  if (!key) { this.checked = false; showToast('  выберите урок'); return; }
+  var enabled = this.checked ? 1 : 0;
+  var prev = !this.checked;
+  var chk = this;
+  chk.disabled = true;
+  try {
+    var r = await fetch(TRAINING_API + '/lesson-params', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: key, autoWeights: enabled }),
+    });
+    var data = await r.json();
+    if (!r.ok) { chk.checked = !!prev; showToast('  ' + (data.error || ('HTTP ' + r.status))); return; }
+    var lesson = getLessonData(key);
+    if (lesson) {
+      lesson.ppo = lesson.ppo || {};
+      lesson.ppo.autoWeights = enabled;
+      setLessonData(key, lesson);
+      saveState();
+    }
+    showToast(enabled ? '  ✓ подбор весов ВКЛЮЧЁН (со следующего запуска RL)' : '  ✓ подбор весов ВЫКЛЮЧЕН');
+  } catch (e) {
+    chk.checked = !!prev;
+    showToast('  ошибка: ' + e.message);
+  } finally {
+    chk.disabled = false;
+  }
+});
+
+// --- История чекпоинтов: снимки best.json, выбор и восстановление из меню ---
+var historySelectedFile = '';
+
+function historyLabel(h) {
+  return (h.epoch != null ? '#' + h.epoch : '?') + ' · ' + (h.score != null ? 'R=' + h.score : 'R=?') + ' · ' + (h.ts || '');
+}
+
+function setHistoryItemSelected(item) {
+  var list = document.getElementById('historyList');
+  if (!list || !item) return;
+  var items = list.querySelectorAll('.custom-select-item');
+  for (var i = 0; i < items.length; i++) items[i].classList.remove('selected');
+  item.classList.add('selected');
+}
+
+function closeHistoryList() {
+  var list = document.getElementById('historyList');
+  if (list) list.classList.remove('open');
+}
+
+function toggleHistoryList() {
+  var list = document.getElementById('historyList');
+  var current = document.getElementById('historyCurrent');
+  if (!list || !current) return;
+  if (list.classList.contains('open')) { closeHistoryList(); return; }
+  var r = current.getBoundingClientRect();
+  var listH = Math.min(list.scrollHeight, 220);
+  var spaceBelow = window.innerHeight - r.bottom;
+  var top = (spaceBelow < listH + 6 && r.top > listH + 6) ? (r.top - listH - 6) : (r.bottom + 4);
+  list.style.position = 'fixed';
+  list.style.left = r.left + 'px';
+  list.style.top = top + 'px';
+  list.style.width = r.width + 'px';
+  list.classList.add('open');
+}
+
+document.getElementById('historyCurrent')?.addEventListener('click', function(e) {
+  e.stopPropagation();
+  toggleHistoryList();
+});
+document.addEventListener('click', closeHistoryList);
+
+async function loadHistory(key) {
+  var list = document.getElementById('historyList');
+  var label = document.getElementById('historyCurrentLabel');
+  if (!list || !label) return;
+  historySelectedFile = '';
+  if (!key) { label.textContent = '— урок не выбран —'; list.innerHTML = ''; return; }
+  var p = parseKey(key);
+  var role = p ? p.branch : (key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone');
+  label.textContent = 'загрузка…';
+  list.innerHTML = '';
+  try {
+    var r = await fetch(TRAINING_API + '/history?nodeKey=' + encodeURIComponent(key) + '&role=' + role);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var data = await r.json();
+    var hist = data.history || [];
+    list.innerHTML = '';
+    if (hist.length === 0) {
+      label.textContent = '— снимков нет —';
+      list.innerHTML = '<div class="custom-select-item placeholder">— снимков нет —</div>';
+      return;
+    }
+    for (var i = 0; i < hist.length; i++) {
+      (function(h) {
+        var item = document.createElement('div');
+        item.className = 'custom-select-item';
+        item.dataset.file = h.file;
+        item.textContent = historyLabel(h);
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          historySelectedFile = this.dataset.file;
+          label.textContent = this.textContent;
+          setHistoryItemSelected(this);
+          closeHistoryList();
+        });
+        list.appendChild(item);
+      })(hist[i]);
+    }
+    var first = list.querySelector('.custom-select-item');
+    if (first) {
+      historySelectedFile = first.dataset.file;
+      label.textContent = first.textContent;
+      setHistoryItemSelected(first);
+    }
+  } catch (e) {
+    label.textContent = '— сервер недоступен —';
+    list.innerHTML = '<div class="custom-select-item placeholder">— сервер недоступен —</div>';
+  }
+}
+
+function historyNodeContext() {
+  var key = selectedKey;
+  if (!key) { showToast('  выберите урок'); return null; }
+  var p = parseKey(key);
+  var role = p ? p.branch : (key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone');
+  return { nodeKey: key, role: role };
+}
+
+document.getElementById('btnRestoreCheckpoint')?.addEventListener('click', async function() {
+  var ctx = historyNodeContext();
+  if (!ctx) return;
+  if (!historySelectedFile) { showToast('  выберите снимок в списке истории'); return; }
+  var btn = this;
+  btn.disabled = true;
+  try {
+    var r = await fetch(TRAINING_API + '/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeKey: ctx.nodeKey, role: ctx.role, file: historySelectedFile }),
+    });
+    var data = await r.json();
+    if (!r.ok) { showToast('  ' + (data.error || ('HTTP ' + r.status))); return; }
+    showToast('  ✓ чекпоинт восстановлен: ' + historySelectedFile);
+    await syncCheckpointsFromDisk();
+    if (selectedKey) populateInspector(selectedKey);
+  } catch (e) {
+    showToast('  ошибка: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('btnRewardDesc')?.addEventListener('click', function() {
+  // TXT — описательная часть
+  var txt = '';
+  txt += '═══════════════════════════════════════════\n';
+  txt += '  НАГРАДЫ И ШТРАФЫ — Polygon Racing\n';
+  txt += '  Урок 1: Движение по прямой (класс 1, drone)\n';
+  txt += '═══════════════════════════════════════════\n\n';
+  txt += 'ФИЛОСОФИЯ\n';
+  txt += '──────────\n';
+  txt += 'Высота — цель. Тангаж и Vz — инструменты достижения цели.\n';
+  txt += 'Штрафуем итог (ошибку высоты), а не механизм (тангаж/Vz).\n';
+  txt += 'Агент сам выучит: отклонился → нужен тангаж → Vz → цель.\n\n';
+  txt += 'IMPROVEMENT-награды поощряют движение в правильную сторону,\n';
+  txt += 'а не только нахождение в идеальном состоянии.\n\n';
+  txt += '═══════════════════════════════════════════\n';
+  txt += '  PER-STEP (каждый тик dt=0.1с, 900 шагов за 90с)\n';
+  txt += '═══════════════════════════════════════════\n\n';
+  txt += 'ПРОГРЕСС (progress)\n';
+  txt += '  Тип: +награда\n';
+  txt += '  Формула: (dist_prev − dist_now) / 25 × вес\n';
+  txt += '  Смысл: агент получает награду за каждый метр приближения\n';
+  txt += '  к waypoint. При весе 2.0 и скорости 44м/с:\n';
+  txt += '  +0.35 за шаг × 200 шагов ≈ +70 за эпизод.\n\n';
+  txt += 'ВЫСОТА (altitude)\n';
+  txt += '  Тип: −штраф\n';
+  txt += '  Формула: −ошибка(м) / 100 × dt × вес\n';
+  txt += '  Смысл: главный регулятор высоты. При весе 8 и ошибке 10м:\n';
+  txt += '  −0.08/шаг × 900 = −72/эп.\n\n';
+  txt += 'ВРЕМЯ (time)\n';
+  txt += '  Тип: −штраф\n';
+  txt += '  Формула: −dt × вес\n';
+  txt += '  Смысл: стимулирует быстрее достигать цели. Вес 0.03:\n';
+  txt += '  −0.003/шаг × 900 = −2.7/эп.\n\n';
+  txt += 'V СТАБ (vzStability)\n';
+  txt += '  Тип: +награда если |Vz|≈0, −штраф если |Vz|>1м/с\n';
+  txt += '  Формула: (1 − max(0, (|Vz|−0.1)×1.0)) / 100 × dt × вес\n';
+  txt += '  Вес 3, Vz=0: +2.7/эп. Vz=5м/с: −13/эп.\n\n';
+  txt += 'КУРС (headingStability)\n';
+  txt += '  Тип: +награда если нос направлен на waypoint\n';
+  txt += '  Формула: (1 − max(0, (err−0.1)×0.05)) / 100 × dt × вес\n\n';
+  txt += 'ТАНГАЖ (pitchStability)\n';
+  txt += '  Тип: +награда если |θ|≈0\n';
+  txt += '  Формула: (1 − max(0, (|θ|−0.1)×1.0)) / 100 × dt × вес\n';
+  txt += '  Вес 2, θ=3°: −8.6/эп.\n\n';
+  txt += 'V ГОР (speedStability)\n';
+  txt += '  Тип: +награда за стабильность горизонтальной скорости\n';
+  txt += '  Формула: (1 − max(0, (|откл|−5)×0.005)) / 100 × dt × вес\n\n';
+  txt += 'КРЕН (rollStability/bankStability)\n';
+  txt += '  Тип: −штраф за боковой наклон\n';
+  txt += '  Вес 5 для прямых (запрет крена), 0 для виражей.\n\n';
+  txt += 'СКОЛЬЖЕНИЕ (slipStability)\n';
+  txt += '  Тип: −штраф за угол β (снос)\n';
+  txt += '  Вес 2 для прямых, 0 для виражей.\n\n';
+  txt += 'СРЫВ (stallMargin)\n';
+  txt += '  Тип: −штраф за приближение к сваливанию\n';
+  txt += '  Универсальный предохранитель, вес 1.0.\n\n';
+  txt += '═══════════════════════════════════════════\n';
+  txt += '  IMPROVEMENT (+награда за улучшение)\n';
+  txt += '═══════════════════════════════════════════\n\n';
+  txt += '↗ВЫСОТА (altImpr)\n';
+  txt += '  Формула: max(0, err_prev − err_now) / 100 × вес\n';
+  txt += '  +награда когда ошибка высоты уменьшается.\n\n';
+  txt += '↗КУРС (hdgImpr)\n';
+  txt += '  Формула: max(0, err_prev − err_now) / 100 × вес\n';
+  txt += '  +награда когда ошибка курса уменьшается.\n\n';
+  txt += '↗V ВЕРТ (vzImpr)\n';
+  txt += '  Формула: max(0, |Vz_prev| − |Vz_now|) / 10 × вес\n';
+  txt += '  +награда когда Vz приближается к 0.\n\n';
+  txt += '↗ТАНГАЖ (pitchImpr)\n';
+  txt += '  Формула: max(0, |θ_prev| − |θ_now|) / 10 × вес\n';
+  txt += '  +награда когда тангаж приближается к 0.\n\n';
+  txt += '═══════════════════════════════════════════\n';
+  txt += '  РАЗОВЫЕ\n';
+  txt += '═══════════════════════════════════════════\n\n';
+  txt += 'ТОЧКА (waypoint): +бонус за вход в радиус (вес + TRAINING_WAYPOINT_BONUS=20).\n';
+  txt += 'АВАРИЯ (crash): −штраф за крушение (×60).\n';
+  txt += 'ФИНИШ: +50 за прибытие (arrived), −25 за таймаут (timeout).\n';
+
+  var blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'polygon-racing-rewards.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  // CSV — таблица
+  setTimeout(function() {
+    var csv = 'Параметр,Ключ,Тип,Формула,Рекомендация\n';
+    csv += 'Прогресс,progress,+награда,(dist_prev−dist_now)/25×вес,2.0\n';
+    csv += 'Точка,waypoint,+разовый,вес+TRAINING_WAYPOINT_BONUS(20),8\n';
+    csv += 'Высота,altitude,−штраф,−ошибка(м)/100×dt×вес,8\n';
+    csv += 'Время,time,−штраф,−dt×вес,0.03\n';
+    csv += 'Авария,crash,−разовый,−вес×60,0\n';
+    csv += 'V стаб,vzStability,+/−,(1−max(0,(|Vz|−0.1)×1))/100×dt×вес,3\n';
+    csv += 'Курс,headingStability,+/−,(1−max(0,(err−0.1)×0.05))/100×dt×вес,6\n';
+    csv += 'Тангаж,pitchStability,+/−,(1−max(0,(|θ|−0.1)×1))/100×dt×вес,2\n';
+    csv += 'V гор,speedStability,+/−,(1−max(0,(|откл|−5)×0.005))/100×dt×вес,5\n';
+    csv += 'Крен,rollStability,−штраф,per-step penalty,5\n';
+    csv += 'Скольжение,slipStability,−штраф,per-step penalty,2\n';
+    csv += 'Срыв,stallMargin,−штраф,per-step penalty,1.0\n';
+    csv += '↗Высота,altImpr,+improve,max(0,err_prev−err_now)/100×вес,5\n';
+    csv += '↗Курс,hdgImpr,+improve,max(0,err_prev−err_now)/100×вес,5\n';
+    csv += '↗V верт,vzImpr,+improve,max(0,|Vz_prev|−|Vz_now|)/10×вес,5\n';
+    csv += '↗Тангаж,pitchImpr,+improve,max(0,|θ_prev|−|θ_now|)/10×вес,5\n';
+    var blob2 = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    var a2 = document.createElement('a');
+    a2.href = URL.createObjectURL(blob2);
+    a2.download = 'polygon-racing-rewards.csv';
+    a2.click();
+    URL.revokeObjectURL(a2.href);
+  }, 200);
+});
+
+// Weight tooltips
+document.querySelectorAll('#nodeWeights label[data-tip]').forEach(function(label) {
+  label.addEventListener('mouseenter', function() {
+    var tip = document.getElementById('weightTooltip');
+    if (tip) { tip.textContent = label.dataset.tip; tip.classList.add('is-open'); }
+  });
+  label.addEventListener('mouseleave', function() {
+    var tip = document.getElementById('weightTooltip');
+    if (tip) tip.classList.remove('is-open');
+  });
+  label.addEventListener('mousemove', function(e) {
+    var tip = document.getElementById('weightTooltip');
+    if (tip) { tip.style.left = e.pageX + 12 + 'px'; tip.style.top = e.pageY - 8 + 'px'; }
+  });
+});
+
+// Mode switch
+document.getElementById('modeBtnManual')?.addEventListener('click', function() {
+  trainingMode = trainingMode === 'auto' ? 'manual' : 'auto';
+  showToast('режим: ' + (trainingMode === 'auto' ? 'авто' : 'ручной'));
+  renderCanvas();
+  saveState();
+});
+
+// Visual debug toast
+function showToast(msg) {
+  var t = document.getElementById('eventLog');
+  if (!t) return;
+  if (t.children.length === 1 && t.firstChild._ph) t.innerHTML = '';
+  var line = document.createElement('div');
+  line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+  t.appendChild(line);
+  t.style.display = 'block';
+  t.scrollTop = t.scrollHeight;
+  if (t.children.length > 60) t.removeChild(t.firstChild);
+}
+
+// Main action buttons
+document.getElementById('btnStartNode').addEventListener('click', function() {
+  var ok = document.getElementById('btnRestartServer')?.dataset.serverOk === '1';
+  if (!ok) { showToast('Сервер не запущен. Запустите: scripts/start-training-server.bat'); return; }
+  showToast('запуск: ' + selectedKey); startLessonTraining(false);
+});
+document.getElementById('btnResumeNode').addEventListener('click', function() {
+  var ok = document.getElementById('btnRestartServer')?.dataset.serverOk === '1';
+  if (!ok) { showToast('Сервер не запущен. Запустите: scripts/start-training-server.bat'); return; }
+  showToast('продолжение'); startLessonTraining(true);
+});
+document.getElementById('btnStopNode').addEventListener('click', stopLessonTraining);
+document.getElementById('btnRestartServer')?.addEventListener('click', async function() {
+  if (this.dataset.serverOk !== '1') {
+    showToast('Сервер не запущен. Запустите: scripts/start-training-server.bat');
+    return;
+  }
+  if (!confirm('Остановить и перезагрузить сервер? Активное обучение прервётся.')) return;
+  if (activeJobId) {
+    try { await fetch(TRAINING_API + '/jobs/' + activeJobId + '/stop', { method: 'POST' }); } catch (_) {}
+  }
+  stopTrainingTimer();
+  try { await fetch(TRAINING_API + '/restart', { method: 'POST' }); } catch (_) {}
+  showToast('Сервер перезагружается...');
+  trainingStartTime = 0; trainingJobProgress = 0; updateTrainingTimerDisplay();
+});
+
+document.getElementById('btnPersistDisk')?.addEventListener('click', async function() {
+  var key = selectedKey;
+  if (!key) { showToast('Нет выбранного урока'); return; }
+  showToast('Проверка сервера...');
+  var okBtn = document.getElementById('btnRestartServer');
+  if (!okBtn || okBtn.dataset.serverOk !== '1') {
+    showToast('Сервер не запущен. Сохранение на диск недоступно.');
+    return;
+  }
+  showToast('Проверка папки записи...');
+  var role = key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone';
+  try {
+    var check = await fetch(TRAINING_API + '/check-dir?nodeKey=' + encodeURIComponent(key) + '&role=' + role, { signal: AbortSignal.timeout(3000) });
+    if (!check.ok) {
+      var ce = await check.json().catch(function() { return { error: 'HTTP ' + check.status }; });
+      showToast('Папка записи недоступна: ' + (ce.error || 'ошибка ' + check.status));
+      return;
+    }
+  } catch (e) {
+    showToast('Ошибка проверки папки: ' + e.message);
+    return;
+  }
+  var lesson = getLessonData(key);
+  if (!lesson || !lesson.chart) { showToast('Нет данных урока'); return; }
+  var chart = lesson.chart;
+  if (!chart.rewards || chart.rewards.length < 1) { showToast('Нет эпизодов для сохранения'); return; }
+  var body = {
+    nodeKey: key,
+    role: role,
+    completed: lesson.completed || chart.rewards.length,
+    resumeFrom: lesson.resumeFrom || 0,
+    rewards: chart.rewards || [],
+    baselines: chart.baselines || [],
+    deltas: chart.deltas || [],
+    losses: chart.losses || [],
+    evals: chart.evals || [],
+    lastRoute: lesson.lastRoute || null,
+  };
+  showToast('Сохранение ' + (chart.rewards.length) + ' эп. на диск...');
+  try {
+    var r = await fetch(TRAINING_API + '/persist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    var data = await r.json();
+    if (r.ok) {
+      showToast('Сохранено ' + (data.episodes || '?') + ' эп. на диск');
+      syncCheckpointsFromDisk();
+    } else {
+      showToast('Ошибка сохранения: ' + (data.error || r.status));
+    }
+  } catch (e) { showToast('Ошибка сохранения: ' + e.message); }
+});
+
+document.getElementById('btnSaveReport')?.addEventListener('click', async function() {
+  var key = selectedKey;
+  if (!key) { showToast('Нет выбранного урока'); return; }
+  var role = key.includes('anti') ? 'anti' : key.includes('joint') ? 'joint' : 'drone';
+  try {
+    var r = await fetch(TRAINING_API + '/report?nodeKey=' + encodeURIComponent(key) + '&role=' + role);
+    if (!r.ok) { var e = await r.json(); throw new Error(e.error || 'HTTP ' + r.status); }
+    showToast('Отчёт сохранён в lesson/Resultats/');
+  } catch (e) { showToast('Ошибка отчёта: ' + e.message); }
+});
+
+// Click handler for reward component labels in Состав награды — toggles which comps appear in the bar chart
+document.getElementById('trainRewardComp')?.addEventListener('click', function(e) {
+  var span = e.target.closest('.comp-label');
+  if (!span) return;
+  var comp = span.dataset.comp;
+  if (!comp) return;
+  var idx = selectedChartComps.indexOf(comp);
+  if (idx >= 0) {
+    selectedChartComps.splice(idx, 1);
+    span.classList.remove('active');
+  } else {
+    selectedChartComps.push(comp);
+    span.classList.add('active');
+  }
+  // Re-render chart with updated selection
+  var key = selectedKey;
+  if (key) {
+    var lesson = getLessonData(key);
+    if (lesson && lesson.chart) {
+      renderEvalSpark('evalSpark', lesson.chart.evals, (lesson.resumeFrom ?? 0) + (lesson.completed ?? 0));
+    }
+  }
+});
+
+function updateServerStatus() {
+  var btn = document.getElementById('btnRestartServer');
+  if (!btn) return;
+  fetch(TRAINING_API + '/health', { method: 'HEAD', signal: AbortSignal.timeout(2000) })
+    .then(function(r) {
+      if (r.ok || r.status === 404) {
+        btn.textContent = 'запущен';
+        btn.style.color = '#5ba3e8';
+        btn.style.borderColor = 'rgba(91,163,232,0.4)';
+        btn.dataset.serverOk = '1';
+      } else { setUnavailable(btn); }
+    })
+    .catch(function() { setUnavailable(btn); });
+}
+function setUnavailable(btn) {
+  btn.textContent = 'недоступен';
+  btn.style.color = '#e04b4b';
+  btn.style.borderColor = 'rgba(224,75,74,0.4)';
+  btn.dataset.serverOk = '0';
+}
+setInterval(updateServerStatus, 3000);
+updateServerStatus();
+
+document.getElementById('btnResetNode')?.addEventListener('click', function() {
+  if (!selectedKey) { showToast('выберите урок'); return; }
+  if (activeTrainingKey === selectedKey) { showToast('идёт обучение — сначала Стоп'); return; }
+  if (!confirm('Сбросить историю обучения и чекпоинт урока? Веса/параметры останутся.')) return;
+  resetLesson(selectedKey);
+  showToast('сброшено: ' + selectedKey);
+});
+document.getElementById('btnPreviewNode').addEventListener('click', openLessonPreview);
+console.log('training.html INIT complete, buttons bound');
+
+// Sync from agent-training.html
+window.addEventListener('storage', function(e) {
+  if (e.key === STORAGE_KEY && e.newValue) {
+    var changedData = JSON.parse(e.newValue);
+    if (changedData.lessons) {
+      Object.keys(changedData.lessons).forEach(function(k) { lessonData[k] = changedData.lessons[k]; });
+    }
+    if (changedData.currentClass) currentTab = changedData.currentClass - 1;
+    if (changedData.currentBranch && (changedData.currentBranch === 'drone' || changedData.currentBranch === 'anti' || changedData.currentBranch === 'joint')) {
+      activeBranch = changedData.currentBranch;
+    }
+    if (changedData.selectedKey) {
+      selectedKey = changedData.selectedKey;
+    } else if (changedData.currentLesson != null && changedData.currentLesson > 0) {
+      var branch = activeBranch === 'joint' ? 'joint' : 'drone';
+      selectedKey = lessonKey(currentTab + 1, branch, changedData.currentLesson);
+    }
+    renderTabs();
+    if (currentTab >= CLS_DATA.length) { renderFacultyView(); } else { renderCanvas(); }
+    updateProgress();
+    if (selectedKey) populateInspector(selectedKey);
+    saveState();
+  }
+});
+
+// Restore active training if page was left and returned
+(function restoreTraining() {
+  try {
+    var raw = localStorage.getItem(TRAINING_STATE_KEY);
+    if (!raw) return;
+    var state = JSON.parse(raw);
+    if (!state.key || !state.jobId) return;
+    // Only restore if training was active recently (last 10 min)
+    if (Date.now() - state.updated > 600000) { localStorage.removeItem(TRAINING_STATE_KEY); return; }
+    var lesson = getLessonData(state.key);
+    if (!lesson) return;
+    activeTrainingKey = state.key;
+    activeJobId = state.jobId;
+    lesson.status = 'восстановлено...';
+    updateTrainingStatusBar();
+    renderCanvas(); saveState();
+    trainingTimer = setInterval(function() { pollTrainingJob(state.key); }, 500);
+    showToast('  восстановлен опрос: ' + state.key);
+  } catch(_) {}
+})();
+
+document.getElementById('nodeEpisodesInput')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.train) lesson.train = {};
+  lesson.train.episodes = Number(this.value) || 20;
+  setLessonData(selectedKey, lesson);
+  saveState();
+  renderCanvas();
+});
+
+document.getElementById('nodeLr')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.lr = Number(this.value) || 0.0001;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+document.getElementById('nodeImitationWeight')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.imitationWeight = Number(this.value) || 0;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+// Автомат снижения имитации: при включении стартует с поля «Имитация» и плавно
+// снижается до «до» по прогрессу эпизодов (сервер аннелирует imitationWeight).
+document.getElementById('chkAutoImitation')?.addEventListener('change', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.imitationAuto = this.checked ? 1 : 0;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+document.getElementById('nodeImitationEnd')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.imitationEnd = Number(this.value) || 0.1;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+document.getElementById('nodeEntropyCoef')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.entropyCoef = Number(this.value) ?? 0.003;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+document.getElementById('nodeTargetKL')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.ppo) lesson.ppo = {};
+  lesson.ppo.targetKL = Number(this.value) ?? 0.02;
+  setLessonData(selectedKey, lesson);
+  saveState();
+});
+
+document.getElementById('nodeExtraEpisodes')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.train) lesson.train = {};
+  lesson.train.extraEpisodes = Math.max(0, Math.min(Number(this.value) || 0, 100));
+  this.value = lesson.train.extraEpisodes;
+  setLessonData(selectedKey, lesson); saveState();
+  updateExtraTotal();
+});
+
+document.getElementById('nodeExtraSessions')?.addEventListener('input', function() {
+  if (!selectedKey) return;
+  var lesson = getLessonData(selectedKey);
+  if (!lesson) return;
+  if (!lesson.train) lesson.train = {};
+  lesson.train.extraSessions = Math.max(0, Math.min(Number(this.value) || 0, 10));
+  this.value = lesson.train.extraSessions;
+  setLessonData(selectedKey, lesson); saveState();
+  updateExtraTotal();
+});
+
+function updateExtraTotal() {
+  var lesson = selectedKey ? getLessonData(selectedKey) : null;
+  var ep = lesson?.train?.extraEpisodes || 0;
+  var se = lesson?.train?.extraSessions || 0;
+  var el = document.getElementById('nodeExtraTotal');
+  if (el) el.textContent = String(ep * se);
+}
+
+document.querySelectorAll('#nodeWeights input[data-weight]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    if (!selectedKey) return;
+    var lesson = getLessonData(selectedKey);
+    if (!lesson) return;
+    if (!lesson.weights) lesson.weights = {};
+    lesson.weights[this.dataset.weight] = Number(this.value) || 0;
+    if (input.nextElementSibling) input.nextElementSibling.textContent = this.value;
+    setLessonData(selectedKey, lesson);
+    saveState();
+  });
+});
+
+</script>
+</body>
+</html>
